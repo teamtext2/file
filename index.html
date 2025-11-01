@@ -1,16 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="vi" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text2 - File</title>
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
+    <title>Trình Quản Lý Tệp (Browser)</title>
     <!-- Tải Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải thư viện JSZip để nén thư mục -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         /* Tùy chỉnh thanh cuộn */
         ::-webkit-scrollbar {
@@ -73,46 +70,6 @@
             }
         }
     </script>
-    <style>
-        /* Thêm CSS cho việc kéo thả và chọn file */
-        .file-item {
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none;
-            position: relative;
-        }
-
-        .file-item.selected {
-            background-color: rgba(59, 130, 246, 0.1);
-        }
-
-        .dark .file-item.selected {
-            background-color: rgba(96, 165, 250, 0.1);
-        }
-
-        .multi-select-mode .file-item:hover {
-            background-color: rgba(59, 130, 246, 0.05);
-        }
-
-        .dark .multi-select-mode .file-item:hover {
-            background-color: rgba(96, 165, 250, 0.05);
-        }
-
-        .drag-preview {
-            position: fixed;
-            pointer-events: none;
-            z-index: 1000;
-            opacity: 0.8;
-            background: white;
-            padding: 8px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .dark .drag-preview {
-            background: #374151;
-        }
-    </style>
 </head>
 <body class="font-sans bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden">
 
@@ -125,7 +82,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 inline-block -mt-1">
                     <path d="M19.5 21a3 3 0 0 0 3-3V6a3 3 0 0 0-3-3H4.5A3 3 0 0 0 1.5 6v12a3 3 0 0 0 3 3h15Zm-6.75-10.5a.75.75 0 0 0-1.5 0v4.5a.75.75 0 0 0 1.5 0v-4.5Z" />
                 </svg>
-                Text2 - File
+                Trình Quản Lý Tệp
             </h1>
             <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                 <!-- Icon Sun -->
@@ -138,32 +95,6 @@
                 </svg>
             </button>
         </header>
-
-        <!-- Thanh công cụ selection -->
-        <div id="selection-toolbar" class="hidden bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded-lg p-2 mb-3">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="text-blue-600 dark:text-blue-400">
-                        <span id="selected-count">0</span> mục đã chọn
-                    </span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="downloadSelectedFiles()" class="flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                            <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" />
-                            <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
-                        </svg>
-                        Tải xuống
-                    </button>
-                    <button onclick="clearSelection()" class="flex items-center gap-1 px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                            <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-                        </svg>
-                        Bỏ chọn
-                    </button>
-                </div>
-            </div>
-        </div>
 
         <!-- Thanh công cụ -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
@@ -272,12 +203,6 @@
         </div>
     </div>
 
-    <!-- Script cho drag and drop -->
-    <script src="js/drag-and-touch.js"></script>
-            </div>
-        </div>
-    </div>
-
     <!-- Menu chuột phải (Context Menu) -->
     <div id="context-menu" class="hidden fixed z-[100] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-2 w-48">
         <button data-action="open" class="flex items-center gap-3 px-4 py-2 text-sm text-left w-full hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -292,6 +217,14 @@
                 <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" />
             </svg>
             Xem trước
+        </button>
+        <!-- NÚT TẢI XUỐNG MỚI -->
+        <button data-action="download" class="flex items-center gap-3 px-4 py-2 text-sm text-left w-full hover:bg-gray-100 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.23a.75.75 0 0 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" />
+                <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
+            </svg>
+            Tải xuống
         </button>
         <div class="my-1 border-t border-gray-200 dark:border-gray-700"></div>
         <button data-action="rename" class="flex items-center gap-3 px-4 py-2 text-sm text-left w-full hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -640,11 +573,56 @@
                     </div>
                 `;
 
-                // Sự kiện click (mở thư mục hoặc xem trước file)
+                // --- CẬP NHẬT SỰ KIỆN CLICK VÀ TOUCH ---
+
+                // Dblclick cho desktop
                 itemEl.addEventListener('dblclick', () => handleItemDoubleClick(item));
                 
+                // Click (single-tap) cho mobile
+                itemEl.addEventListener('click', (e) => {
+                    // Ngăn click nếu đây là kết thúc của long-press
+                    if (itemEl.dataset.longPress === 'true') {
+                        e.preventDefault();
+                        itemEl.dataset.longPress = 'false';
+                        return;
+                    }
+                    // Trên mobile, click 1 lần = dblclick
+                    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                    if (isTouch) {
+                        handleItemDoubleClick(item);
+                    }
+                });
+
                 // Sự kiện context menu (chuột phải)
                 itemEl.addEventListener('contextmenu', (e) => showContextMenu(e, item.id));
+
+                // Sự kiện long-press cho mobile
+                let longPressTimer;
+                itemEl.addEventListener('touchstart', (e) => {
+                    itemEl.dataset.longPress = 'false'; // Đặt lại cờ
+                    longPressTimer = setTimeout(() => {
+                        e.preventDefault(); // Ngăn hành vi mặc định KHI long-press xảy ra
+                        itemEl.dataset.longPress = 'true';
+                        const touch = e.touches[0];
+                        // Tạo một "event" giả để truyền clientX/Y
+                        const mockEvent = {
+                            clientX: touch.clientX,
+                            clientY: touch.clientY,
+                            preventDefault: () => e.preventDefault(),
+                            stopPropagation: () => e.stopPropagation()
+                        };
+                        showContextMenu(mockEvent, item.id);
+                    }, 500); // 500ms
+                });
+
+                itemEl.addEventListener('touchend', () => {
+                    clearTimeout(longPressTimer);
+                });
+
+                itemEl.addEventListener('touchmove', () => {
+                    clearTimeout(longPressTimer);
+                });
+                // --- KẾT THÚC CẬP NHẬT SỰ KIỆN ---
 
                 dom.fileList.appendChild(itemEl);
             });
@@ -710,6 +688,7 @@
             const newPath = (currentPath === '/' ? '' : currentPath) + '/' + name;
             
             if (await fileSystemDB.pathExists(newPath)) {
+                // Tạm thời dùng alert, nên thay bằng modal
                 alert('Tên thư mục đã tồn tại!');
                 return;
             }
@@ -756,13 +735,14 @@
             
             try {
                 // Cập nhật item hiện tại
+                const oldPath = item.path; // Lưu lại đường dẫn cũ
                 item.name = newName;
                 item.path = newPath;
                 await fileSystemDB.updateItem(item);
 
-                // Nếu là thư mục, cập nhật đường dẫn của tất cả con cháu (phức tạp)
+                // Nếu là thư mục, cập nhật đường dẫn của tất cả con cháu
                 if (item.type === 'folder') {
-                    await updateChildrenPaths(item.path, newPath);
+                    await updateChildrenPaths(oldPath, newPath);
                 }
 
                 hideModal(dom.renameModal);
@@ -779,6 +759,7 @@
             
             for(const child of children) {
                 const oldChildPath = child.path;
+                // Tạo đường dẫn mới bằng cách thay thế phần đầu
                 const newChildPath = newPathPrefix + oldChildPath.substring(oldPathPrefix.length);
                 
                 child.path = newChildPath;
@@ -786,6 +767,7 @@
                 await fileSystemDB.updateItem(child);
                 
                 if (child.type === 'folder') {
+                    // Đệ quy cho thư mục con
                     await updateChildrenPaths(oldChildPath, newChildPath);
                 }
             }
@@ -865,14 +847,36 @@
             contextMenuItemId = id; // Lưu ID của item
             
             // Ẩn/hiện các tùy chọn dựa trên item
-            const itemEl = e.target.closest('[data-id]');
+            const itemEl = dom.fileList.querySelector(`[data-id="${id}"]`);
+            if (!itemEl) return;
+            
             const type = itemEl.getAttribute('data-type');
             
             dom.contextMenu.querySelector('[data-action="open"]').style.display = (type === 'folder') ? 'flex' : 'none';
             dom.contextMenu.querySelector('[data-action="preview"]').style.display = (type === 'file') ? 'flex' : 'none';
+            // Nút Tải xuống luôn hiển thị
+            dom.contextMenu.querySelector('[data-action="download"]').style.display = 'flex';
 
-            dom.contextMenu.style.top = `${e.clientY}px`;
-            dom.contextMenu.style.left = `${e.clientX}px`;
+
+            // Đặt vị trí menu
+            // Cần điều chỉnh để menu không bị tràn ra ngoài màn hình
+            const menuWidth = dom.contextMenu.offsetWidth;
+            const menuHeight = dom.contextMenu.offsetHeight;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            let x = e.clientX;
+            let y = e.clientY;
+
+            if (x + menuWidth > viewportWidth) {
+                x = viewportWidth - menuWidth - 5; // 5px lề
+            }
+            if (y + menuHeight > viewportHeight) {
+                y = viewportHeight - menuHeight - 5;
+            }
+
+            dom.contextMenu.style.top = `${y}px`;
+            dom.contextMenu.style.left = `${x}px`;
             dom.contextMenu.classList.remove('hidden');
         }
 
@@ -882,9 +886,12 @@
         }
 
         async function handleContextMenuAction(e) {
-            if (!contextMenuItemId) return;
+            const button = e.target.closest('button');
+            if (!button || !contextMenuItemId) return;
             
-            const action = e.target.closest('button').getAttribute('data-action');
+            const action = button.getAttribute('data-action');
+            if (!action) return;
+
             const item = await fileSystemDB.getItem(contextMenuItemId);
 
             if (!item) return;
@@ -894,10 +901,14 @@
                 case 'preview': // Dùng chung logic
                     handleItemDoubleClick(item);
                     break;
+                case 'download': // MỚI
+                    handleDownload(item);
+                    break;
                 case 'rename':
                     showRenameModal(item.id, item.name);
                     break;
                 case 'delete':
+                    // Nên thay confirm bằng modal tự custom
                     if (confirm(`Bạn có chắc muốn xoá "${item.name}"? ${item.type === 'folder' ? 'Toàn bộ nội dung bên trong cũng sẽ bị xoá.' : ''}`)) {
                         try {
                             await fileSystemDB.deleteRecursive(item.id);
@@ -910,7 +921,108 @@
                     break;
             }
             
-            hideContextMenu();
+            // Ẩn menu sau khi hành động (trừ khi mở modal)
+            if (action !== 'rename' && action !== 'delete') {
+                 hideContextMenu();
+            }
+            // Tải xuống đã tự ẩn bên trong hàm handleDownload
+        }
+
+        // === TẢI FILE/FOLDER XUỐNG (MỚI) ===
+
+        /**
+         * Xử lý tải item (file hoặc folder)
+         * @param {object} item - Item từ DB
+         */
+        async function handleDownload(item) {
+            if (!item) return;
+            
+            // Lấy nút download để hiển thị trạng thái
+            const downloadBtn = dom.contextMenu.querySelector('[data-action="download"]');
+            const originalHTML = downloadBtn.innerHTML;
+
+            try {
+                if (item.type === 'file') {
+                    // Tải file
+                    downloadBtn.innerHTML = `
+                        <svg class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Đang tải...`;
+                    downloadFile(item.content, item.name);
+                } else if (item.type === 'folder') {
+                    // Tải thư mục (zip)
+                    if (typeof JSZip === 'undefined') {
+                        alert('Lỗi: thư viện JSZip chưa được tải. Không thể nén thư mục.');
+                        return;
+                    }
+                    downloadBtn.innerHTML = `
+                        <svg class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Đang nén...`;
+                    
+                    const zip = new JSZip();
+                    // Tạo thư mục gốc bên trong file zip
+                    const rootZipFolder = zip.folder(item.name);
+                    
+                    // Thêm tất cả item con vào thư mục gốc
+                    await addItemsToZip(rootZipFolder, item.path);
+                    
+                    // Tạo file zip
+                    downloadBtn.innerHTML = `
+                        <svg class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Tạo file...`;
+                    const blob = await zip.generateAsync({ type: 'blob' });
+                    
+                    // Tải file zip
+                    downloadFile(blob, `${item.name}.zip`);
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải xuống:', error);
+                alert('Đã xảy ra lỗi trong quá trình tải xuống.');
+            } finally {
+                // Đặt lại nút
+                downloadBtn.innerHTML = originalHTML;
+                hideContextMenu(); // Ẩn menu đi
+            }
+        }
+
+        /**
+         * Hàm đệ quy thêm file/folder vào đối tượng zip
+         * @param {JSZip} zipFolder - Đối tượng JSZip folder (hoặc root)
+         * @param {string} parentPath - Đường dẫn của thư mục cha trong DB
+         */
+        async function addItemsToZip(zipFolder, parentPath) {
+            const items = await fileSystemDB.getItemsInPath(parentPath);
+            
+            for (const item of items) {
+                if (item.type === 'file') {
+                    // Thêm file vào zip. item.content là Blob/File.
+                    zipFolder.file(item.name, item.content);
+                } else if (item.type === 'folder') {
+                    // Tạo thư mục con trong zip
+                    const newZipFolder = zipFolder.folder(item.name);
+                    // Đệ quy
+                    await addItemsToZip(newZipFolder, item.path);
+                }
+            }
+        }
+
+        /**
+         * Tiện ích tạo link ảo để tải blob
+         * @param {Blob} blob - Dữ liệu file (Blob)
+         * @param {string} filename - Tên file để tải về
+         */
+        function downloadFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            
+            document.body.appendChild(a);
+            a.click();
+            
+            // Dọn dẹp
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         // === XEM TRƯỚC FILE ===
@@ -1007,7 +1119,7 @@
             }
              if (mime.startsWith('audio/')) {
                 return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="${baseClass} text-orange-500">
-                          <path fill-rule="evenodd" d="M19.952 1.651a.75.75 0 0 1 .298.599V16.5a3 3 0 0 1-3 3h-1.5a.75.75 0 0 1 0-1.5h1.5a1.5 1.5 0 0 0 1.5-1.5V3.44l-11.25 3.383v11.177A3 3 0 0 1 7.5 21h-1.5a.75.75 0 0 1 0-1.5h1.5a1.5 1.5 0 0 0 1.5-1.5V6.382l10.5-3.156Z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M19.952 1.651a.75.75 0 0 1 .298.599V16.5a3 3 0 0 1-3 3h-1.5a.75.75 0 0 1 0-1.5h1.5a1.5 1.5 0 0 0 1.5-1.5V3.44l-11.25 3.383v11.177A3 3 0 0 1 7.5 21h-1.5a.75.75 0 0 1 0-1.5h1.5a1.5 1.5 0 0 0 1.5-1.5V6.382l10.5-3.156Z" clip-rule="evenodd" />
                         </svg>`;
             }
             if (mime.startsWith('text/') || mime.includes('json') || mime.includes('script')) {
