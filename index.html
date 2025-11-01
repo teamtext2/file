@@ -6,6 +6,8 @@
     <title>Trình Quản Lý Tệp (Browser)</title>
     <!-- Tải Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- JSZip để tạo và giải nén zip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         /* Tùy chỉnh thanh cuộn */
         ::-webkit-scrollbar {
@@ -53,6 +55,59 @@
         /* Modal backdrop */
         .modal-backdrop {
             background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+        .animate-slideIn { animation: slideIn 0.3s ease-out; }
+        .animate-scaleIn { animation: scaleIn 0.2s ease-out; }
+
+        /* Selection box */
+        .selection-box {
+            border: 2px dashed #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            pointer-events: none;
+        }
+
+        /* Grid view */
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .file-grid-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .file-grid-item:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        .dark .file-grid-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .file-grid-item.selected {
+            background: rgba(59, 130, 246, 0.2);
+            border: 2px solid #3b82f6;
         }
     </style>
     <script>
@@ -82,16 +137,32 @@
                 </svg>
                 Trình Quản Lý Tệp
             </h1>
-            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                <!-- Icon Sun -->
-                <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 hidden">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591" />
-                </svg>
-                <!-- Icon Moon -->
-                <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 hidden">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
-                </svg>
-            </button>
+            <div class="flex items-center gap-2">
+                <button id="view-toggle" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all" title="Chuyển đổi chế độ xem">
+                    <svg id="view-list-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5 hidden">
+                        <path d="M3 6h18M3 12h18M3 18h18"/>
+                    </svg>
+                    <svg id="view-grid-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                </button>
+                <button id="settings-btn" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all" title="Cài đặt">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+                        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <!-- Icon Sun -->
+                    <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 hidden">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591" />
+                    </svg>
+                    <!-- Icon Moon -->
+                    <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 hidden">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                    </svg>
+                </button>
+            </div>
         </header>
 
         <!-- Thanh công cụ -->
@@ -139,8 +210,31 @@
                 <div class="col-span-3 sm:col-span-2 font-semibold text-right">Kích thước</div>
                 <div class="col-span-3 sm:col-span-2 font-semibold text-right">Loại</div>
             </div>
+            <!-- Toolbar khi có selection -->
+            <div id="selection-toolbar" class="hidden px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
+                <div class="flex items-center justify-between">
+                    <span id="selection-count" class="text-sm font-medium text-blue-700 dark:text-blue-300"></span>
+                    <div class="flex gap-2">
+                        <button id="download-selected-btn" class="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 inline mr-1">
+                                <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.295a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.069V2.75Z"/>
+                                <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z"/>
+                            </svg>
+                            Tải xuống
+                        </button>
+                        <button id="delete-selected-btn" class="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 inline mr-1">
+                                <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.566 19h4.868a2.75 2.75 0 0 0 2.72-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193v-.443A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clip-rule="evenodd"/>
+                            </svg>
+                            Xóa
+                        </button>
+                    </div>
+                </div>
+            </div>
             <!-- Danh sách file -->
-            <div id="file-list" class="flex-1 overflow-y-auto p-2">
+            <div id="file-list" class="flex-1 overflow-y-auto p-2 relative">
+                <!-- Selection box -->
+                <div id="selection-box" class="hidden absolute selection-box z-20"></div>
                 <!-- Các file và thư mục sẽ được render bởi JS -->
             </div>
             <div id="empty-folder-msg" class="hidden items-center justify-center flex-col h-full text-gray-400 dark:text-gray-500 p-10">
@@ -201,8 +295,70 @@
         </div>
     </div>
 
+    <!-- Modal: Settings -->
+    <div id="settings-modal" class="fixed inset-0 z-50 items-center justify-center p-4 hidden modal-backdrop">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-auto animate-scaleIn" onclick="event.stopPropagation()">
+            <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+                <h3 class="text-2xl font-bold">Cài đặt</h3>
+                <button class="modal-close-btn p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-6">
+                <!-- Storage Info -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-3">Bộ nhớ trình duyệt</h4>
+                    <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Dung lượng đã dùng</span>
+                            <span id="storage-used" class="font-semibold">0 B</span>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 mb-2">
+                            <div id="storage-progress" class="bg-blue-600 h-2.5 rounded-full transition-all" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Ước tính dung lượng cache đang sử dụng</p>
+                    </div>
+                </div>
+                <!-- View Mode -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-3">Giao diện thư mục</h4>
+                    <div class="flex gap-3">
+                        <button id="view-mode-list" class="flex-1 p-4 border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6 mx-auto mb-2">
+                                <path d="M3 6h18M3 12h18M3 18h18"/>
+                            </svg>
+                            <span class="text-sm font-medium">Danh sách</span>
+                        </button>
+                        <button id="view-mode-grid" class="flex-1 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6 mx-auto mb-2">
+                                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                            </svg>
+                            <span class="text-sm font-medium">Khối</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Sort Options -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-3">Sắp xếp file</h4>
+                    <select id="sort-option" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="name-asc">Tên (A-Z)</option>
+                        <option value="name-desc">Tên (Z-A)</option>
+                        <option value="date-desc">Ngày thêm (Mới nhất)</option>
+                        <option value="date-asc">Ngày thêm (Cũ nhất)</option>
+                        <option value="size-desc">Kích thước (Lớn nhất)</option>
+                        <option value="size-asc">Kích thước (Nhỏ nhất)</option>
+                        <option value="type-asc">Loại (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Menu chuột phải (Context Menu) -->
-    <div id="context-menu" class="hidden fixed z-[100] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-2 w-48">
+    <div id="context-menu" class="hidden fixed z-[100] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-2 w-48 animate-fadeIn">
         <button data-action="open" class="flex items-center gap-3 px-4 py-2 text-sm text-left w-full hover:bg-gray-100 dark:hover:bg-gray-700">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                 <path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h3.879a1.5 1.5 0 0 1 1.06.44l3.122 3.121A1.5 1.5 0 0 0 12.621 6H16.5A1.5 1.5 0 0 1 18 7.5v7a1.5 1.5 0 0 1-1.5 1.5H3.5A1.5 1.5 0 0 1 2 14.5v-11Z" />
@@ -215,6 +371,13 @@
                 <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" />
             </svg>
             Xem trước
+        </button>
+        <button data-action="download" class="flex items-center gap-3 px-4 py-2 text-sm text-left w-full hover:bg-gray-100 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.295a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.069V2.75Z"/>
+                <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z"/>
+            </svg>
+            Tải xuống
         </button>
         <div class="my-1 border-t border-gray-200 dark:border-gray-700"></div>
         <button data-action="rename" class="flex items-center gap-3 px-4 py-2 text-sm text-left w-full hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -240,11 +403,20 @@
         let db;
         let currentPath = '/';
         let contextMenuItemId = null; // ID của item đang được click chuột phải
+        let selectedItems = new Set(); // Set chứa ID các item đã chọn
+        let viewMode = localStorage.getItem('viewMode') || 'list'; // 'list' hoặc 'grid'
+        let sortOption = localStorage.getItem('sortOption') || 'name-asc';
+        let isSelecting = false; // Đang trong chế độ select
+        let selectionStart = null; // Điểm bắt đầu selection box
 
         const dom = {
             themeToggle: document.getElementById('theme-toggle'),
             themeIconSun: document.getElementById('theme-icon-sun'),
             themeIconMoon: document.getElementById('theme-icon-moon'),
+            viewToggle: document.getElementById('view-toggle'),
+            viewListIcon: document.getElementById('view-list-icon'),
+            viewGridIcon: document.getElementById('view-grid-icon'),
+            settingsBtn: document.getElementById('settings-btn'),
             uploadBtn: document.getElementById('upload-btn'),
             uploadInput: document.getElementById('file-upload-input'),
             createFolderBtn: document.getElementById('create-folder-btn'),
@@ -253,8 +425,20 @@
             emptyFolderMsg: document.getElementById('empty-folder-msg'),
             dropZone: document.getElementById('drop-zone'),
             searchInput: document.getElementById('search-input'),
+            selectionBox: document.getElementById('selection-box'),
+            selectionToolbar: document.getElementById('selection-toolbar'),
+            selectionCount: document.getElementById('selection-count'),
+            downloadSelectedBtn: document.getElementById('download-selected-btn'),
+            deleteSelectedBtn: document.getElementById('delete-selected-btn'),
             
             // Modals
+            settingsModal: document.getElementById('settings-modal'),
+            viewModeList: document.getElementById('view-mode-list'),
+            viewModeGrid: document.getElementById('view-mode-grid'),
+            sortOption: document.getElementById('sort-option'),
+            storageUsed: document.getElementById('storage-used'),
+            storageProgress: document.getElementById('storage-progress'),
+            
             createFolderModal: document.getElementById('create-folder-modal'),
             createFolderForm: document.getElementById('create-folder-form'),
             folderNameInput: document.getElementById('folder-name-input'),
@@ -402,8 +586,10 @@
         async function initApp() {
             await fileSystemDB.open();
             initTheme();
+            initViewMode();
             initEventListeners();
             await loadItems(currentPath);
+            updateStorageInfo();
         }
 
         // === QUẢN LÝ THEME (DARK MODE) ===
@@ -448,6 +634,36 @@
             // Form đổi tên
             dom.renameForm.addEventListener('submit', handleRename);
 
+            // View toggle
+            dom.viewToggle.addEventListener('click', toggleViewMode);
+            dom.viewModeList.addEventListener('click', () => setViewMode('list'));
+            dom.viewModeGrid.addEventListener('click', () => setViewMode('grid'));
+
+            // Settings
+            dom.settingsBtn.addEventListener('click', showSettingsModal);
+            dom.sortOption.addEventListener('change', (e) => {
+                sortOption = e.target.value;
+                localStorage.setItem('sortOption', sortOption);
+                loadItems(currentPath);
+            });
+
+            // Selection toolbar
+            dom.downloadSelectedBtn.addEventListener('click', downloadSelectedItems);
+            dom.deleteSelectedBtn.addEventListener('click', deleteSelectedItems);
+
+            // Multi-select với mouse
+            dom.fileList.addEventListener('mousedown', handleSelectionStart);
+            document.addEventListener('mousemove', handleSelectionMove);
+            document.addEventListener('mouseup', handleSelectionEnd);
+
+            // Multi-select với touch
+            dom.fileList.addEventListener('touchstart', handleSelectionStart, { passive: false });
+            document.addEventListener('touchmove', handleSelectionMove, { passive: false });
+            document.addEventListener('touchend', handleSelectionEnd);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyboard);
+
             // Đóng modal
             document.querySelectorAll('.modal-close-btn').forEach(btn => {
                 btn.addEventListener('click', hideAllModals);
@@ -459,14 +675,72 @@
             // Đóng context menu
             document.addEventListener('click', hideContextMenu);
             
-            // Tìm kiếm (chỉ là UI, chưa lọc)
+            // Tìm kiếm
             dom.searchInput.addEventListener('input', (e) => {
-                // Tương lai: Gọi hàm lọc tại đây
-                console.log('Đang tìm kiếm:', e.target.value);
+                loadItems(currentPath); // Reload với filter
             });
 
             // Sự kiện cho Context Menu
             dom.contextMenu.addEventListener('click', handleContextMenuAction);
+        }
+
+        // === QUẢN LÝ VIEW MODE ===
+        function initViewMode() {
+            setViewMode(viewMode);
+        }
+
+        function toggleViewMode() {
+            const newMode = viewMode === 'list' ? 'grid' : 'list';
+            setViewMode(newMode);
+        }
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            localStorage.setItem('viewMode', mode);
+            
+            if (mode === 'grid') {
+                dom.fileList.classList.add('file-grid');
+                dom.fileList.classList.remove('grid', 'grid-cols-12');
+                dom.viewListIcon.classList.remove('hidden');
+                dom.viewGridIcon.classList.add('hidden');
+                dom.viewModeGrid.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+                dom.viewModeGrid.classList.remove('border-gray-300', 'dark:border-gray-600');
+                dom.viewModeList.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+                dom.viewModeList.classList.add('border-gray-300', 'dark:border-gray-600');
+            } else {
+                dom.fileList.classList.remove('file-grid');
+                dom.fileList.classList.add('grid', 'grid-cols-12');
+                dom.viewListIcon.classList.add('hidden');
+                dom.viewGridIcon.classList.remove('hidden');
+                dom.viewModeList.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+                dom.viewModeList.classList.remove('border-gray-300', 'dark:border-gray-600');
+                dom.viewModeGrid.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+                dom.viewModeGrid.classList.add('border-gray-300', 'dark:border-gray-600');
+            }
+            
+            loadItems(currentPath);
+        }
+
+        // === QUẢN LÝ SETTINGS ===
+        function showSettingsModal() {
+            updateStorageInfo();
+            // Set sort option value
+            dom.sortOption.value = sortOption;
+            showModal(dom.settingsModal);
+        }
+
+        async function updateStorageInfo() {
+            try {
+                const estimate = await navigator.storage.estimate();
+                const used = estimate.usage || 0;
+                const quota = estimate.quota || 0;
+                const percentage = quota > 0 ? (used / quota) * 100 : 0;
+                
+                dom.storageUsed.textContent = formatFileSize(used);
+                dom.storageProgress.style.width = `${Math.min(percentage, 100)}%`;
+            } catch (e) {
+                console.error('Không thể lấy thông tin storage:', e);
+            }
         }
 
         // === HIỂN THỊ MODALS ===
@@ -484,6 +758,7 @@
             hideModal(dom.createFolderModal);
             hideModal(dom.renameModal);
             hideModal(dom.previewModal);
+            hideModal(dom.settingsModal);
         }
 
         function showCreateFolderModal() {
@@ -508,17 +783,54 @@
          */
         async function loadItems(path) {
             currentPath = path;
-            const items = await fileSystemDB.getItemsInPath(path);
+            let items = await fileSystemDB.getItemsInPath(path);
             
-            // Sắp xếp: thư mục lên trước, rồi theo tên
-            items.sort((a, b) => {
-                if (a.type === 'folder' && b.type !== 'folder') return -1;
-                if (a.type !== 'folder' && b.type === 'folder') return 1;
-                return a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' });
-            });
+            // Filter theo search
+            const searchTerm = dom.searchInput.value.trim().toLowerCase();
+            if (searchTerm) {
+                items = items.filter(item => 
+                    item.name.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Sort items
+            items = sortItems(items);
 
             renderFileList(items);
             renderBreadcrumbs(path);
+            updateSelectionToolbar();
+        }
+
+        function sortItems(items) {
+            // Luôn sắp xếp folder lên trước
+            const folders = items.filter(i => i.type === 'folder');
+            const files = items.filter(i => i.type !== 'folder');
+            
+            const sortFolder = (a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' });
+            const sortFile = (a, b) => {
+                const [field, order] = sortOption.split('-');
+                let result = 0;
+                
+                switch(field) {
+                    case 'name':
+                        result = a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' });
+                        break;
+                    case 'date':
+                        result = new Date(a.createdAt) - new Date(b.createdAt);
+                        break;
+                    case 'size':
+                        result = (a.size || 0) - (b.size || 0);
+                        break;
+                    case 'type':
+                        result = (a.mime || '').localeCompare(b.mime || '', 'vi');
+                        break;
+                }
+                return order === 'desc' ? -result : result;
+            };
+            
+            folders.sort(sortFolder);
+            files.sort(sortFile);
+            return [...folders, ...files];
         }
 
         /**
@@ -537,40 +849,135 @@
             dom.emptyFolderMsg.classList.add('hidden');
             dom.emptyFolderMsg.classList.remove('flex');
 
+            if (viewMode === 'grid') {
+                renderGridView(items);
+            } else {
+                renderListView(items);
+            }
+        }
+
+        function renderListView(items) {
             items.forEach(item => {
                 const itemEl = document.createElement('div');
-                itemEl.className = 'grid grid-cols-12 gap-4 px-4 py-3 items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-150';
+                const isSelected = selectedItems.has(item.id);
+                itemEl.className = `grid grid-cols-12 gap-4 px-4 py-3 items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-all duration-200 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`;
                 itemEl.setAttribute('data-id', item.id);
                 itemEl.setAttribute('data-name', item.name);
                 itemEl.setAttribute('data-type', item.type);
                 itemEl.setAttribute('data-path', item.path);
 
                 const isFolder = item.type === 'folder';
+                const thumbnail = getThumbnail(item);
 
                 itemEl.innerHTML = `
-                    <div class="col-span-6 sm:col-span-5 flex items-center gap-3 truncate">
-                        ${getIcon(item.type, item.mime)}
-                        <span class="truncate font-medium">${item.name}</span>
+                    <div class="col-span-1 flex items-center justify-center">
+                        <input type="checkbox" class="item-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                               ${isSelected ? 'checked' : ''} 
+                               onclick="event.stopPropagation(); toggleSelection(${item.id})">
                     </div>
-                    <div class="col-span-3 sm:col-span-3 text-sm text-gray-500 dark:text-gray-400 truncate hidden sm:block">
+                    <div class="col-span-5 sm:col-span-4 flex items-center gap-3 truncate">
+                        ${thumbnail || getIcon(item.type, item.mime)}
+                        <span class="truncate font-medium">${escapeHtml(item.name)}</span>
+                    </div>
+                    <div class="col-span-2 sm:col-span-2 text-sm text-gray-500 dark:text-gray-400 truncate hidden sm:block">
                         ${new Date(item.createdAt).toLocaleDateString('vi-VN')}
                     </div>
-                    <div class="col-span-3 sm:col-span-2 text-sm text-gray-500 dark:text-gray-400 text-right">
+                    <div class="col-span-2 sm:col-span-2 text-sm text-gray-500 dark:text-gray-400 text-right">
                         ${isFolder ? '--' : formatFileSize(item.size)}
                     </div>
-                    <div class="col-span-3 sm:col-span-2 text-sm text-gray-500 dark:text-gray-400 text-right truncate">
+                    <div class="col-span-2 sm:col-span-2 text-sm text-gray-500 dark:text-gray-400 text-right truncate">
                         ${isFolder ? 'Thư mục' : (item.mime || 'Không rõ')}
+                    </div>
+                    <div class="col-span-1 flex items-center justify-end">
+                        <button class="item-menu-btn p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" 
+                                onclick="event.stopPropagation(); showItemMenu(event, ${item.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                <path d="M10 3a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM10 8.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM10 14a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/>
+                            </svg>
+                        </button>
                     </div>
                 `;
 
                 // Sự kiện click (mở thư mục hoặc xem trước file)
                 itemEl.addEventListener('dblclick', () => handleItemDoubleClick(item));
+                itemEl.addEventListener('click', (e) => {
+                    if (!e.target.closest('.item-checkbox') && !e.target.closest('.item-menu-btn')) {
+                        toggleSelection(item.id);
+                    }
+                });
                 
                 // Sự kiện context menu (chuột phải)
-                itemEl.addEventListener('contextmenu', (e) => showContextMenu(e, item.id));
+                itemEl.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    showContextMenu(e, item.id);
+                });
 
                 dom.fileList.appendChild(itemEl);
             });
+        }
+
+        function renderGridView(items) {
+            items.forEach(item => {
+                const itemEl = document.createElement('div');
+                const isSelected = selectedItems.has(item.id);
+                itemEl.className = `file-grid-item ${isSelected ? 'selected' : ''} animate-fadeIn`;
+                itemEl.setAttribute('data-id', item.id);
+                itemEl.setAttribute('data-name', item.name);
+                itemEl.setAttribute('data-type', item.type);
+                itemEl.setAttribute('data-path', item.path);
+
+                const thumbnail = getThumbnail(item);
+
+                itemEl.innerHTML = `
+                    <div class="absolute top-2 left-2">
+                        <input type="checkbox" class="item-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                               ${isSelected ? 'checked' : ''} 
+                               onclick="event.stopPropagation(); toggleSelection(${item.id})">
+                    </div>
+                    <div class="absolute top-2 right-2">
+                        <button class="item-menu-btn p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" 
+                                onclick="event.stopPropagation(); showItemMenu(event, ${item.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                                <path d="M10 3a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM10 8.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM10 14a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="mb-2">${thumbnail || getIcon(item.type, item.mime, 'w-12 h-12')}</div>
+                    <span class="text-sm font-medium text-center truncate w-full">${escapeHtml(item.name)}</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">${item.type === 'folder' ? 'Thư mục' : formatFileSize(item.size)}</span>
+                `;
+
+                itemEl.addEventListener('dblclick', () => handleItemDoubleClick(item));
+                itemEl.addEventListener('click', (e) => {
+                    if (!e.target.closest('.item-checkbox') && !e.target.closest('.item-menu-btn')) {
+                        toggleSelection(item.id);
+                    }
+                });
+                itemEl.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    showContextMenu(e, item.id);
+                });
+
+                dom.fileList.appendChild(itemEl);
+            });
+        }
+
+        function getThumbnail(item) {
+            if (item.type === 'file' && item.mime && item.mime.startsWith('image/') && item.content) {
+                try {
+                    const url = URL.createObjectURL(item.content);
+                    return `<img src="${url}" alt="${escapeHtml(item.name)}" class="w-16 h-16 object-cover rounded-lg" onerror="this.style.display='none'">`;
+                } catch (e) {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         /**
@@ -793,6 +1200,7 @@
             
             dom.contextMenu.querySelector('[data-action="open"]').style.display = (type === 'folder') ? 'flex' : 'none';
             dom.contextMenu.querySelector('[data-action="preview"]').style.display = (type === 'file') ? 'flex' : 'none';
+            dom.contextMenu.querySelector('[data-action="download"]').style.display = 'flex';
 
             dom.contextMenu.style.top = `${e.clientY}px`;
             dom.contextMenu.style.left = `${e.clientX}px`;
@@ -816,6 +1224,14 @@
                 case 'open':
                 case 'preview': // Dùng chung logic
                     handleItemDoubleClick(item);
+                    break;
+                case 'download':
+                    if (item.type === 'file') {
+                        downloadFile(item);
+                    } else {
+                        const items = [item];
+                        await downloadAsZip(items);
+                    }
                     break;
                 case 'rename':
                     showRenameModal(item.id, item.name);
@@ -904,13 +1320,236 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
+        // === QUẢN LÝ SELECTION ===
+        function toggleSelection(id) {
+            if (selectedItems.has(id)) {
+                selectedItems.delete(id);
+            } else {
+                selectedItems.add(id);
+            }
+            loadItems(currentPath);
+        }
+
+        function updateSelectionToolbar() {
+            if (selectedItems.size > 0) {
+                dom.selectionToolbar.classList.remove('hidden');
+                dom.selectionCount.textContent = `${selectedItems.size} mục đã chọn`;
+            } else {
+                dom.selectionToolbar.classList.add('hidden');
+            }
+        }
+
+        function clearSelection() {
+            selectedItems.clear();
+            updateSelectionToolbar();
+            loadItems(currentPath);
+        }
+
+        // === DRAG SELECTION ===
+        function handleSelectionStart(e) {
+            const isTouch = e.type === 'touchstart';
+            const clientX = isTouch ? e.touches[0].clientX : e.clientX;
+            const clientY = isTouch ? e.touches[0].clientY : e.clientY;
+            
+            if (!e.target.closest('[data-id]') && !e.target.closest('.item-checkbox') && !e.target.closest('.item-menu-btn')) {
+                isSelecting = true;
+                const rect = dom.fileList.getBoundingClientRect();
+                selectionStart = {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+                dom.selectionBox.style.left = selectionStart.x + 'px';
+                dom.selectionBox.style.top = selectionStart.y + 'px';
+                dom.selectionBox.style.width = '0px';
+                dom.selectionBox.style.height = '0px';
+                dom.selectionBox.classList.remove('hidden');
+                if (isTouch) e.preventDefault();
+            }
+        }
+
+        function handleSelectionMove(e) {
+            if (!isSelecting || !selectionStart) return;
+            
+            const isTouch = e.type === 'touchmove';
+            const clientX = isTouch ? e.touches[0].clientX : e.clientX;
+            const clientY = isTouch ? e.touches[0].clientY : e.clientY;
+            
+            const rect = dom.fileList.getBoundingClientRect();
+            const currentX = clientX - rect.left;
+            const currentY = clientY - rect.top;
+            
+            const left = Math.min(selectionStart.x, currentX);
+            const top = Math.min(selectionStart.y, currentY);
+            const width = Math.abs(currentX - selectionStart.x);
+            const height = Math.abs(currentY - selectionStart.y);
+            
+            dom.selectionBox.style.left = left + 'px';
+            dom.selectionBox.style.top = top + 'px';
+            dom.selectionBox.style.width = width + 'px';
+            dom.selectionBox.style.height = height + 'px';
+            
+            // Select items trong selection box
+            const items = dom.fileList.querySelectorAll('[data-id]');
+            items.forEach(itemEl => {
+                const itemRect = itemEl.getBoundingClientRect();
+                const itemLeft = itemRect.left - rect.left;
+                const itemTop = itemRect.top - rect.top;
+                const itemRight = itemLeft + itemRect.width;
+                const itemBottom = itemTop + itemRect.height;
+                
+                if (left < itemRight && left + width > itemLeft && top < itemBottom && top + height > itemTop) {
+                    const id = parseInt(itemEl.getAttribute('data-id'));
+                    selectedItems.add(id);
+                }
+            });
+            
+            if (isTouch) e.preventDefault();
+        }
+
+        function handleSelectionEnd(e) {
+            if (isSelecting) {
+                isSelecting = false;
+                dom.selectionBox.classList.add('hidden');
+                selectionStart = null;
+                loadItems(currentPath);
+            }
+        }
+
+        // === ITEM MENU ===
+        async function showItemMenu(e, id) {
+            e.stopPropagation();
+            const item = await fileSystemDB.getItem(id);
+            if (!item) return;
+            
+            contextMenuItemId = id;
+            const x = e.clientX || (e.touches && e.touches[0].clientX);
+            const y = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            dom.contextMenu.style.top = `${y}px`;
+            dom.contextMenu.style.left = `${x}px`;
+            dom.contextMenu.classList.remove('hidden');
+            
+            // Update menu items
+            dom.contextMenu.querySelector('[data-action="open"]').style.display = item.type === 'folder' ? 'flex' : 'none';
+            dom.contextMenu.querySelector('[data-action="preview"]').style.display = item.type === 'file' ? 'flex' : 'none';
+            dom.contextMenu.querySelector('[data-action="download"]').style.display = 'flex';
+        }
+
+        // === DOWNLOAD ===
+        async function downloadSelectedItems() {
+            if (selectedItems.size === 0) return;
+            
+            const items = [];
+            for (const id of selectedItems) {
+                const item = await fileSystemDB.getItem(id);
+                if (item) items.push(item);
+            }
+            
+            if (items.length === 1 && items[0].type === 'file') {
+                // Download single file
+                downloadFile(items[0]);
+            } else {
+                // Download multiple files as zip
+                await downloadAsZip(items);
+            }
+            
+            clearSelection();
+        }
+
+        async function downloadFile(item) {
+            if (item.type !== 'file' || !item.content) return;
+            const url = URL.createObjectURL(item.content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = item.name;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        }
+
+        async function downloadAsZip(items) {
+            if (typeof JSZip === 'undefined') {
+                alert('Thư viện JSZip chưa tải xong. Vui lòng thử lại sau.');
+                return;
+            }
+            
+            const zip = new JSZip();
+            
+            for (const item of items) {
+                if (item.type === 'file' && item.content) {
+                    const blob = item.content instanceof Blob ? item.content : await item.content.blob();
+                    zip.file(item.name, blob);
+                } else if (item.type === 'folder') {
+                    await addFolderToZip(zip, item, item.name + '/');
+                }
+            }
+            
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'files.zip';
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        }
+
+        async function addFolderToZip(zip, folder, basePath) {
+            const children = await fileSystemDB.getItemsInPath(folder.path);
+            for (const child of children) {
+                if (child.type === 'file' && child.content) {
+                    const blob = child.content instanceof Blob ? child.content : await child.content.blob();
+                    zip.file(basePath + child.name, blob);
+                } else if (child.type === 'folder') {
+                    await addFolderToZip(zip, child, basePath + child.name + '/');
+                }
+            }
+        }
+
+        // === DELETE SELECTED ===
+        async function deleteSelectedItems() {
+            if (selectedItems.size === 0) return;
+            if (!confirm(`Bạn có chắc muốn xóa ${selectedItems.size} mục đã chọn?`)) return;
+            
+            for (const id of selectedItems) {
+                try {
+                    await fileSystemDB.deleteRecursive(id);
+                } catch (error) {
+                    console.error('Lỗi khi xóa:', error);
+                }
+            }
+            
+            clearSelection();
+            await loadItems(currentPath);
+        }
+
+        // === KEYBOARD SHORTCUTS ===
+        function handleKeyboard(e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (selectedItems.size > 0) {
+                    deleteSelectedItems();
+                }
+            } else if (e.key === 'Escape') {
+                clearSelection();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                e.preventDefault();
+                // Select all
+                const allItems = dom.fileList.querySelectorAll('[data-id]');
+                allItems.forEach(itemEl => {
+                    const id = parseInt(itemEl.getAttribute('data-id'));
+                    selectedItems.add(id);
+                });
+                loadItems(currentPath);
+            }
+        }
+
         /**
          * Lấy chuỗi SVG icon dựa trên loại item
          * @param {string} type - 'file' hoặc 'folder'
          * @param {string} mime - Mime type (VD: 'image/png')
+         * @param {string} baseClass - CSS class cho icon
          */
-        function getIcon(type, mime = '') {
-            const baseClass = 'w-6 h-6 flex-shrink-0';
+        function getIcon(type, mime = '', baseClass = 'w-6 h-6 flex-shrink-0') {
             if (type === 'folder') {
                 return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="${baseClass} text-yellow-500">
                             <path d="M19.5 21a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-5.379a.75.75 0 0 1-.53-.22L11.47 3.66A2.25 2.25 0 0 0 9.879 3H4.5A3 3 0 0 0 1.5 6v12a3 3 0 0 0 3 3h15Z" />
