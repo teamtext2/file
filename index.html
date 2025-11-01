@@ -84,16 +84,25 @@
                 </svg>
                 Trình Quản Lý Tệp
             </h1>
-            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                <!-- Icon Sun -->
-                <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 hidden">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591" />
-                </svg>
-                <!-- Icon Moon -->
-                <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 hidden">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
-                </svg>
-            </button>
+            <!-- Cập nhật: Bọc 2 nút trong 1 div -->
+            <div class="flex items-center">
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <!-- Icon Sun -->
+                    <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 hidden">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591" />
+                    </svg>
+                    <!-- Icon Moon -->
+                    <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 hidden">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                    </svg>
+                </button>
+                <!-- NÚT CÀI ĐẶT MỚI -->
+                <button id="settings-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ml-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-6 h-6">
+                        <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 0 1-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 0 1 .947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 0 1 2.287.947c.379 1.561 2.6 1.561 2.978 0a1.532 1.532 0 0 1 2.287-.947c1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 0 1-.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 0 1 .947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 0 1-2.287-.947ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
         </header>
 
         <!-- Thanh công cụ -->
@@ -197,8 +206,35 @@
                     </svg>
                 </button>
             </div>
-            <div id="preview-content" class="flex-1 overflow-auto mt-4 p-2 bg-gray-100 dark:bg-gray-900 rounded">
+            <!-- Cập nhật: Thay đổi class p-2 thành p-4 và thêm flex items-center justify-center -->
+            <div id="preview-content" class="flex-1 overflow-auto mt-4 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg flex items-center justify-center">
                 <!-- Nội dung xem trước (ảnh hoặc text) sẽ được chèn vào đây -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Cài đặt (MỚI) -->
+    <div id="settings-modal" class="fixed inset-0 z-50 items-center justify-center p-4 hidden modal-backdrop">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b dark:border-gray-700">
+                <h3 class="text-xl font-semibold">Cài đặt</h3>
+                <button class="modal-close-btn p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div id="settings-content">
+                <!-- Nội dung cài đặt (dung lượng) sẽ được chèn vào đây -->
+                <div class="text-center p-4">
+                    <svg class="w-8 h-8 animate-spin mx-auto text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Đang tính toán dung lượng...</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-5">
+                <button type="button" class="modal-close-btn px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 font-medium transition-colors">Đóng</button>
             </div>
         </div>
     </div>
@@ -280,6 +316,11 @@
 
             // Context Menu
             contextMenu: document.getElementById('context-menu'),
+
+            // Cài đặt (MỚI)
+            settingsBtn: document.getElementById('settings-btn'),
+            settingsModal: document.getElementById('settings-modal'),
+            settingsContent: document.getElementById('settings-content'),
         };
 
         // === LỚP QUẢN LÝ INDEXEDDB ===
@@ -402,6 +443,16 @@
                 const item = await this.getItemByPath(path);
                 return !!item;
             }
+
+            // MỚI: Lấy tất cả item
+            getAllItems() {
+                return new Promise((resolve, reject) => {
+                    const store = this.getTransaction();
+                    const request = store.getAll();
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
         }
 
         const fileSystemDB = new FileSystemDB(DB_NAME, STORE_NAME);
@@ -477,6 +528,9 @@
 
             // Sự kiện cho Context Menu
             dom.contextMenu.addEventListener('click', handleContextMenuAction);
+
+            // Cài đặt (MỚI)
+            dom.settingsBtn.addEventListener('click', showSettingsModal);
         }
 
         // === HIỂN THỊ MODALS ===
@@ -494,6 +548,7 @@
             hideModal(dom.createFolderModal);
             hideModal(dom.renameModal);
             hideModal(dom.previewModal);
+            hideModal(dom.settingsModal); // MỚI
         }
 
         function showCreateFolderModal() {
@@ -509,6 +564,66 @@
             dom.renameNameInput.focus();
             dom.renameNameInput.select();
         }
+
+        // MỚI: Hiển thị Modal Cài đặt
+        async function showSettingsModal() {
+            // Đặt lại nội dung về trạng thái tải
+            dom.settingsContent.innerHTML = `
+                <div class="text-center p-4">
+                    <svg class="w-8 h-8 animate-spin mx-auto text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Đang tính toán dung lượng...</p>
+                </div>`;
+            showModal(dom.settingsModal);
+
+            try {
+                const { totalSize, fileCount } = await calculateStorageUsage();
+                const formattedSize = formatFileSize(totalSize);
+
+                // Cố gắng lấy quota (nếu trình duyệt hỗ trợ)
+                let quotaText = "Không thể lấy thông tin";
+                if (navigator.storage && navigator.storage.estimate) {
+                    const quota = await navigator.storage.estimate();
+                    const formattedQuota = formatFileSize(quota.quota);
+                    const percentage = (quota.quota > 0) ? ((totalSize / quota.quota) * 100).toFixed(2) : 0;
+                    quotaText = `${formattedSize} / ${formattedQuota} (${percentage}%)`;
+                } else {
+                    quotaText = `${formattedSize} đã sử dụng`;
+                }
+
+                dom.settingsContent.innerHTML = `
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Tổng dung lượng đã sử dụng</label>
+                            <p class="text-xl font-semibold">${quotaText}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Tổng số tệp</label>
+                            <p class="text-xl font-semibold">${fileCount} tệp</p>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error("Lỗi khi tính toán dung lượng:", error);
+                dom.settingsContent.innerHTML = `<p class="text-red-500">Không thể tính toán dung lượng.</p>`;
+            }
+        }
+
+        // MỚI: Tính toán dung lượng
+        async function calculateStorageUsage() {
+            const allItems = await fileSystemDB.getAllItems();
+            let totalSize = 0;
+            let fileCount = 0;
+            
+            allItems.forEach(item => {
+                if (item.type === 'file' && item.size) {
+                    totalSize += item.size;
+                    fileCount++;
+                }
+            });
+
+            return { totalSize, fileCount };
+        }
+
 
         // === LOGIC CHÍNH: QUẢN LÝ FILE/THƯ MỤC ===
 
@@ -1025,7 +1140,7 @@
             URL.revokeObjectURL(url);
         }
 
-        // === XEM TRƯỚC FILE ===
+        // === XEM TRƯỚC FILE (ĐÃ CẬP NHẬT) ===
         
         async function previewFile(item) {
             if (item.type === 'folder' || !item.content) return;
@@ -1035,20 +1150,27 @@
 
             const mime = item.mime.toLowerCase();
             
+            // Cập nhật: Thêm padding lớn hơn và căn giữa
+            dom.previewContent.className = 'flex-1 overflow-auto mt-4 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg flex items-center justify-center';
+            
             if (mime.startsWith('image/')) {
                 const url = URL.createObjectURL(item.content);
                 const img = document.createElement('img');
                 img.src = url;
-                img.className = 'max-w-full max-h-full object-contain mx-auto';
+                // Cập nhật: Thêm bo tròn, bóng và object-scale-down
+                img.className = 'max-w-full max-h-full object-scale-down mx-auto rounded-lg shadow-md';
                 img.onload = () => URL.revokeObjectURL(url); // Giải phóng bộ nhớ
                 dom.previewContent.appendChild(img);
                 
             } else if (mime.startsWith('text/') || mime.includes('json') || mime.includes('javascript')) {
+                // Cập nhật: Cho text, bỏ căn giữa để text canh lề trái
+                dom.previewContent.classList.remove('items-center', 'justify-center');
                 try {
                     const text = await item.content.text();
                     const pre = document.createElement('pre');
                     pre.textContent = text;
-                    pre.className = 'whitespace-pre-wrap break-words text-sm p-2';
+                    // Cập nhật: Thêm padding, bo tròn và nền trắng/tối
+                    pre.className = 'whitespace-pre-wrap break-words text-sm p-4 rounded-lg bg-white dark:bg-gray-800 w-full h-full';
                     dom.previewContent.appendChild(pre);
                 } catch (e) {
                     dom.previewContent.textContent = 'Lỗi khi đọc file text.';
@@ -1059,7 +1181,8 @@
                 const video = document.createElement('video');
                 video.src = url;
                 video.controls = true;
-                video.className = 'max-w-full max-h-full mx-auto';
+                // Cập nhật: Thêm bo tròn và bóng
+                video.className = 'max-w-full max-h-full mx-auto rounded-lg shadow-md';
                 video.onloadedmetadata = () => URL.revokeObjectURL(url); // Giải phóng khi không cần
                 dom.previewContent.appendChild(video);
 
@@ -1068,12 +1191,14 @@
                 const audio = document.createElement('audio');
                 audio.src = url;
                 audio.controls = true;
-                audio.className = 'w-full mt-4';
+                // Cập nhật: Căn giữa và giới hạn chiều rộng
+                audio.className = 'w-full max-w-lg mx-auto mt-4';
                 audio.onloadedmetadata = () => URL.revokeObjectURL(url);
                 dom.previewContent.appendChild(audio);
                 
             } else {
-                dom.previewContent.textContent = `Không hỗ trợ xem trước cho loại file: ${mime}`;
+                // Cập nhật: Hiển thị thông báo ở giữa
+                dom.previewContent.innerHTML = `<p class="text-gray-500">Không hỗ trợ xem trước cho loại file: ${mime}</p>`;
             }
 
             showModal(dom.previewModal);
@@ -1137,3 +1262,4 @@
     </script>
 </body>
 </html>
+
