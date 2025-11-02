@@ -19,16 +19,80 @@
             height: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: #1E1E1E;
             border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
+            background: #404040;
             border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
+            background: #505050;
         }
+
+        /* Ẩn input file gốc */
+        #file-upload-input, #folder-upload-input {
+            display: none;
+        }
+
+        /* Kiểu cho vùng kéo thả khi active */
+        .drag-over {
+            border-style: dashed;
+            border-color: #1E90FF;
+            background-color: rgba(30, 144, 255, 0.1);
+        }
+
+        /* Modal backdrop */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        /* Custom dark theme colors */
+        .bg-primary {
+            background-color: #121212;
+        }
+        
+        .bg-secondary {
+            background-color: #1A1A1A;
+        }
+        
+        .bg-tertiary {
+            background-color: #1E1E1E;
+        }
+        
+        .bg-quaternary {
+            background-color: #242424;
+        }
+        
+        .text-primary {
+            color: #FFFFFF;
+        }
+        
+        .text-secondary {
+            color: #B0B0B0;
+        }
+        
+        .accent-blue {
+            color: #1E90FF;
+        }
+        
+        .bg-accent-blue {
+            background-color: #1E90FF;
+        }
+        
+        .border-accent-blue {
+            border-color: #1E90FF;
+        }
+
+        /* Hover states */
+        .hover-tertiary:hover {
+            background-color: #2A2A2A;
+        }
+        
+        .hover-quaternary:hover {
+            background-color: #2E2E2E;
+        }
+
         /* CSS cho chế độ dark mode */
         .dark ::-webkit-scrollbar-track {
             background: #2d3748;
