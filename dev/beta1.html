@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    <title>Text2 File</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải thư viện JSZip để nén thư mục -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1E1E1E;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #505050;
+        }
+
+        /* Ẩn input file gốc */
+        #file-upload-input, #folder-upload-input {
+            display: none;
+        }
+
+        /* Kiểu cho vùng kéo thả khi active */
+        .drag-over {
+            border-style: dashed;
+            border-color: #1E90FF;
+            background-color: rgba(30, 144, 255, 0.1);
+        }
+
+        /* Modal backdrop */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        /* Custom dark theme colors */
+        .bg-primary {
+            background-color: #121212;
+        }
+        
+        .bg-secondary {
+            background-color: #1A1A1A;
+        }
+        
+        .bg-tertiary {
+            background-color: #1E1E1E;
+        }
+        
+        .bg-quaternary {
+            background-color: #242424;
+        }
+        
+        .text-primary {
+            color: #FFFFFF;
+        }
+        
+        .text-secondary {
+            color: #B0B0B0;
+        }
+        
+        .accent-blue {
+            color: #1E90FF;
+        }
+        
+        .bg-accent-blue {
+            background-color: #1E90FF;
+        }
+        
+        .border-accent-blue {
+            border-color: #1E90FF;
+        }
+
+        /* Hover states */
+        .hover-tertiary:hover {
+            background-color: #2A2A2A;
+        }
+        
+        .hover-quaternary:hover {
+            background-color: #2E2E2E;
+        }
+
+        /* CSS cho chế độ dark mode */
+        .dark ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #4a5568;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+
+        /* Ẩn input file gốc */
+        #file-upload-input, #folder-upload-input {
+            display: none;
+        }
+
+        /* Kiểu cho vùng kéo thả khi active */
+        .drag-over {
+            border-style: dashed;
+            border-color: #3b82f6; /* blue-500 */
+            background-color: #eff6ff; /* blue-50 */
+        }
+        .dark .drag-over {
+            border-color: #60a5fa; /* blue-400 */
+            background-color: #1e3a8a; /* blue-900 */
+        }
+
+        /* Modal backdrop */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+    </style>
+    <script>
+        // Cấu hình Tailwind cho dark mode
+        tailwind.config = {
+            darkMode: 'class', // 'class' cho phép bật/tắt thủ công
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden">
+
+    <!-- Container chính -->
+    <div class="flex-1 flex flex-col max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-6 overflow-hidden">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-4 pb-2 border-b border-gray-300 dark:border-gray-700">
+            <h1 class="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 inline-block -mt-1">
+                    <path d="M19.5 21a3 3 0 0 0 3-3V6a3 3 0 0 0-3-3H4.5A3 3 0 0 0 1.5 6v12a3 3 0 0 0 3 3h15Zm-6.75-10.5a.75.75 0 0 0-1.5 0v4.5a.75.75 0 0 0 1.5 0v-4.5Z" />
+                </svg>
+                Text2 - File
+            </h1>
+            <!-- Cập nhật: Bọc 2 nút trong 1 div -->
+            <div class="flex items-center">
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <!-- Icon Sun -->
+                    <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 hidden">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591" />
+                    </svg>
+                    <!-- Icon Moon -->
+                    <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 hidden">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                    </svg>
+                </button>
+                <!-- NÚT CÀI ĐẶT MỚI -->
+                <button id="settings-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ml-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-6 h-6">
+                        <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 0 1-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 0 1 .947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 0 1 2.287.947c.379 1.561 2.6 1.561 2.978 0a1.532 1.532 0 0 1 2.287-.947c1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 0 1-.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 0 1 .947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 0 1-2.287-.947ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Thanh công cụ -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div class="flex gap-2">
+                <button id="upload-btn" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                        <path d="M9.25 13.25a.75.75 0 0 0 1.5 0V4.636l2.955 3.129a.75.75 0 0 0 1.09-1.03l-4.25-4.5a.75.75 0 0 0-1.09 0l-4.25 4.5a.75.75 0 1 0 1.09 1.03L9.25 4.636v8.614Z" />
+                        <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
+                    </svg>
+                    Tải tệp
+                </button>
+                <input type="file" id="file-upload-input" multiple>
+                
+                <!-- MỚI: Nút tải thư mục -->
+                <button id="upload-folder-btn" class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                        <path d="M2 3.5A1.5 1.5 0 0 1 3.5 2H7.137a.75.75 0 0 1 .58.28l.83 1.106A1.5 1.5 0 0 0 9.61 4H16.5A1.5 1.5 0 0 1 18 5.5v.054a.75.75 0 0 1-1.5 0V5.5a.75.75 0 0 0-.75-.75H9.61a.75.75 0 0 1-.58-.28L8.2 3.363A1.5 1.5 0 0 0 7.137 3H3.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h13a.75.75 0 0 0 .75-.75v-3.054a.75.75 0 0 1 1.5 0V15.5a1.5 1.5 0 0 1-1.5 1.5H3.5A1.5 1.5 0 0 1 2 15.5V3.5Z"/>
+                        <path d="M9.25 13.25a.75.75 0 0 0 1.5 0V9.636l2.955 3.129a.75.75 0 0 0 1.09-1.03l-4.25-4.5a.75.75 0 0 0-1.09 0l-4.25 4.5a.75.75 0 1 0 1.09 1.03L9.25 9.636v3.614Z"/>
+                    </svg>
+                    Tải thư mục
+                </button>
+                <input type="file" id="folder-upload-input" webkitdirectory directory>
+
+                <button id="create-folder-btn" class="flex items-center gap-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg shadow-md border border-gray-300 dark:border-gray-600 transition-all duration-200 transform hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                        <path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h3.879a1.5 1.5 0 0 1 1.06.44l3.122 3.121A1.5 1.5 0 0 0 12.621 6H16.5A1.5 1.5 0 0 1 18 7.5v.563a.75.75 0 0 1-1.5 0V7.5a.75.75 0 0 0-.75-.75h-3.879a.75.75 0 0 1-.53-.22L9.22 3.44A.75.75 0 0 0 8.69 3H3.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h6.25a.75.75 0 0 1 0 1.5H3.5A1.5 1.5 0 0 1 2 15.5V3.5Z" />
+                        <path d="M14 12.5a.75.75 0 0 0-1.5 0v2h-2a.75.75 0 0 0 0 1.5h2v2a.75.75 0 0 0 1.5 0v-2h2a.75.75 0 0 0 0-1.5h-2v-2Z" />
+                    </svg>
+                    Tạo thư mục
+                </button>
+            </div>
+            <!-- Thanh tìm kiếm (chưa có chức năng) -->
+            <div class="relative w-full sm:w-64">
+                <input type="search" id="search-input" placeholder="Tìm kiếm tệp..." class="w-full py-2 px-4 pl-10 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        <nav class="mb-3 bg-white dark:bg-gray-800 rounded-lg shadow p-2">
+            <ol id="breadcrumbs" class="flex items-center gap-1 text-sm font-medium">
+                <!-- Breadcrumbs sẽ được render bởi JS -->
+            </ol>
+        </nav>
+
+        <!-- Vùng kéo thả và danh sách file -->
+        <main id="drop-zone" class="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-inner overflow-hidden flex flex-col border-2 border-transparent transition-all">
+            <!-- Header của bảng -->
+            <div class="grid grid-cols-12 gap-4 px-4 py-3 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                <div class="col-span-6 sm:col-span-5 font-semibold text-left">Tên</div>
+                <div class="col-span-3 sm:col-span-3 font-semibold text-left hidden sm:block">Ngày tạo</div>
+                <div class="col-span-3 sm:col-span-2 font-semibold text-right">Kích thước</div>
+                <div class="col-span-3 sm:col-span-2 font-semibold text-right">Loại</div>
+            </div>
+            <!-- Danh sách file -->
+            <div id="file-list" class="flex-1 overflow-y-auto p-2">
+                <!-- Các file và thư mục sẽ được render bởi JS -->
+            </div>
+            <div id="empty-folder-msg" class="hidden items-center justify-center flex-col h-full text-gray-400 dark:text-gray-500 p-10">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-24 h-24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+                </svg>
+                <p class="mt-4 text-lg font-medium">Thư mục trống</p>
+                <p class="text-sm">Kéo thả file vào đây hoặc dùng nút "Tải lên"</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Tạo thư mục -->
+    <div id="create-folder-modal" class="fixed inset-0 z-50 items-center justify-center p-4 hidden modal-backdrop">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-semibold mb-4">Tạo thư mục mới</h3>
+            <form id="create-folder-form">
+                <label for="folder-name-input" class="block text-sm font-medium mb-2">Tên thư mục</label>
+                <input type="text" id="folder-name-input" required class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Thư mục của tôi">
+                <div class="flex justify-end gap-3 mt-5">
+                    <button type="button" class="modal-close-btn px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 font-medium transition-colors">Huỷ</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors">Tạo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Đổi tên -->
+    <div id="rename-modal" class="fixed inset-0 z-50 items-center justify-center p-4 hidden modal-backdrop">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-semibold mb-4">Đổi tên</h3>
+            <form id="rename-form">
+                <input type="hidden" id="rename-id-input">
+                <label for="rename-name-input" class="block text-sm font-medium mb-2">Tên mới</Tên>
+                <input type="text" id="rename-name-input" required class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="flex justify-end gap-3 mt-5">
+                    <button type="button" class="modal-close-btn px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 font-medium transition-colors">Huỷ</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Xem trước file -->
+    <div id="preview-modal" class="fixed inset-0 z-50 items-center justify-center p-4 hidden modal-backdrop">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[80vh] p-4 flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center pb-3 border-b dark:border-gray-700">
+                <h3 id="preview-title" class="text-xl font-semibold">Xem trước</h3>
+                <button class="modal-close-btn p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <!-- Cập nhật: Thay đổi class p-2 thành p-4 và thêm flex items-center justify-center -->
+            <div id="preview-content" class="flex-1 overflow-auto mt-4 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg flex items-center justify-center">
+                <!-- Nội dung xem trước (ảnh hoặc text) sẽ được chèn vào đây -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Cài đặt (MỚI) -->
+    <div id="settings-modal" class="fixed inset-0 z-50 items-center justify-center p-4 hidden modal-backdrop">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b dark:border-gray-700">
+                <h3 class="text-xl font-semibold">Cài đặt</h3>
+                <button class="modal-close-btn p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div id="settings-content">
+                <!-- Nội dung cài đặt (dung lượng) sẽ được chèn vào đây -->
+                <div class="text-center p-4">
+                    <svg class="w-8 h-8 animate-spin mx-auto text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Đang tính toán dung lượng...</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-5">
+                <button type="button" class="modal-close-btn px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 font-medium transition-colors">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu chuột phải (Context Menu) -->
+    <div id="context-menu" class="hidden fixed z-[100] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-2 w-48">
+        <button data-action="open" class="flex items-center gap-3 px-4 py-2 text-sm text-left w-full hover:bg-gray-100 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                <path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h3.879a1.5 1.5 0 0 1 1.06.44l3.122 3.121A1.5 1.5 0 0 0 12.621 6H16.5A1.5 1.5 0 0 1 18 7.5v7a1.5 1.5 0 0 1-1.5 1.5H3.5A1.5 1.5 0 0 1 2 14.5v-11Z" />
+                <path d="M11.25 11.5c0 .414.336.75.75.75h2.25a.75.75 0 0 0 0-1.5H12a.75.75 0 0 0-.75.75Z" />
+            </svg>
+            Mở
+        </button>
+        <button data-action="preview" class="flex items-center gap-3 px-4 py-2 text-sm text-left w-full hover:bg-gray-100 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" />
+            </svg>
+            Xem trước
+        </button>
+        <button data-action="download" class="flex items-center gap-3 px-4 py-2 text-sm text-left w-full hover:bg-gray-100 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.23a.75.75 0 0 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" />
+                <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
+            </svg>
+            Tải xuống
+        </button>
+        <div class="my-1 border-t border-gray-200 dark:border-gray-700"></div>
+        <button data-action="rename" class="flex items-center gap-3 px-4 py-2 text-sm text-left w-full hover:bg-gray-100 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
+            </svg>
+            Đổi tên
+        </button>
+        <button data-action="delete" class="flex items-center gap-3 px-4 py-2 text-sm text-left w-full text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.566 19h4.868a2.75 2.75 0 0 0 2.72-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193v-.443A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clip-rule="evenodd" />
+            </svg>
+            Xoá
+        </button>
+    </div>
+
+    <!-- MỚI: Thanh công cụ multi-select -->
+    <div id="multi-select-toolbar" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-20 bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 flex gap-2 border border-gray-200 dark:border-gray-700">
+        <span id="selected-count" class="flex items-center text-sm font-medium px-2 py-1.5 text-gray-700 dark:text-gray-300">Đã chọn 0</span>
+        <button data-action="download-selected" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-3 rounded-md transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.23a.75.75 0 0 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" /><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" /></svg>
+            Tải xuống
+        </button>
+        <button data-action="delete-selected" class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 px-3 rounded-md transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.566 19h4.868a2.75 2.75 0 0 0 2.72-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193v-.443A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clip-rule="evenodd" /></svg>
+            Xoá
+        </button>
+        <button data-action="clear-selection" class="p-1.5 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600" title="Bỏ chọn tất cả">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" /></svg>
+        </button>
+    </div>
+
+    <!-- JavaScript chính -->
+    <script>
+        // === KHAI BÁO BIẾN VÀ DOM ELEMENTS ===
+        const DB_NAME = 'BrowserFileManagerDB';
+        const STORE_NAME = 'files';
+        let db;
+        let currentPath = '/';
+        let contextMenuItemId = null; // ID của item đang được click chuột phải
+        let selectedItemIds = new Set(); // MỚI: Dùng Set để lưu các ID đã chọn
+        let lastClickedId = null; // MỚI: Cho Shift-click
+
+        const dom = {
+            themeToggle: document.getElementById('theme-toggle'),
+            themeIconSun: document.getElementById('theme-icon-sun'),
+            themeIconMoon: document.getElementById('theme-icon-moon'),
+            uploadBtn: document.getElementById('upload-btn'),
+            uploadInput: document.getElementById('file-upload-input'),
+            uploadFolderBtn: document.getElementById('upload-folder-btn'), // MỚI
+            folderUploadInput: document.getElementById('folder-upload-input'), // MỚI
+            createFolderBtn: document.getElementById('create-folder-btn'),
+            fileList: document.getElementById('file-list'),
+            breadcrumbs: document.getElementById('breadcrumbs'),
+            emptyFolderMsg: document.getElementById('empty-folder-msg'),
+            dropZone: document.getElementById('drop-zone'),
+            searchInput: document.getElementById('search-input'),
+            
+            // Modals
+            createFolderModal: document.getElementById('create-folder-modal'),
+            createFolderForm: document.getElementById('create-folder-form'),
+            folderNameInput: document.getElementById('folder-name-input'),
+            
+            renameModal: document.getElementById('rename-modal'),
+            renameForm: document.getElementById('rename-form'),
+            renameIdInput: document.getElementById('rename-id-input'),
+            renameNameInput: document.getElementById('rename-name-input'),
+
+            previewModal: document.getElementById('preview-modal'),
+            previewTitle: document.getElementById('preview-title'),
+            previewContent: document.getElementById('preview-content'),
+
+            // Context Menu
+            contextMenu: document.getElementById('context-menu'),
+
+            // Cài đặt
+            settingsBtn: document.getElementById('settings-btn'),
+            settingsModal: document.getElementById('settings-modal'),
+            settingsContent: document.getElementById('settings-content'),
+
+            // Multi-select Toolbar (MỚI)
+            multiSelectToolbar: document.getElementById('multi-select-toolbar'),
+            selectedCount: document.getElementById('selected-count'),
+        };
+
+        // === LỚP QUẢN LÝ INDEXEDDB ===
+        class FileSystemDB {
+            constructor(dbName, storeName) {
+                this.dbName = dbName;
+                this.storeName = storeName;
+            }
+
+            open() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, 1);
+
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains(this.storeName)) {
+                            const store = db.createObjectStore(this.storeName, { keyPath: 'id', autoIncrement: true });
+                            store.createIndex('parentPath', 'parentPath', { unique: false });
+                            store.createIndex('path', 'path', { unique: true });
+                        }
+                    };
+
+                    request.onsuccess = (event) => {
+                        db = event.target.result;
+                        resolve(db);
+                    };
+
+                    request.onerror = (event) => {
+                        console.error('Lỗi khi mở IndexedDB:', event.target.error);
+                        reject(event.target.error);
+                    };
+                });
+            }
+
+            getTransaction(mode = 'readonly') {
+                const transaction = db.transaction(this.storeName, mode);
+                return transaction.objectStore(this.storeName);
+            }
+
+            addItem(item) {
+                return new Promise((resolve, reject) => {
+                    const store = this.getTransaction('readwrite');
+                    const request = store.add(item);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
+
+            getItem(id) {
+                return new Promise((resolve, reject) => {
+                    const store = this.getTransaction();
+                    const request = store.get(id);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
+            
+            getItemByPath(path) {
+                return new Promise((resolve, reject) => {
+                    const store = this.getTransaction();
+                    const index = store.index('path');
+                    const request = index.get(path);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
+
+            updateItem(item) {
+                return new Promise((resolve, reject) => {
+                    const store = this.getTransaction('readwrite');
+                    const request = store.put(item);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
+
+            deleteItem(id) {
+                return new Promise((resolve, reject) => {
+                    const store = this.getTransaction('readwrite');
+                    const request = store.delete(id);
+                    request.onsuccess = () => resolve();
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
+            
+            async deleteRecursive(id) {
+                const item = await this.getItem(id);
+                if (!item) return;
+
+                if (item.type === 'folder') {
+                    const children = await this.getItemsInPath(item.path);
+                    for (const child of children) {
+                        await this.deleteRecursive(child.id); 
+                    }
+                }
+                await this.deleteItem(id); 
+            }
+
+            getItemsInPath(parentPath) {
+                return new Promise((resolve, reject) => {
+                    const store = this.getTransaction();
+                    const index = store.index('parentPath');
+                    const request = index.getAll(parentPath);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
+            
+            async pathExists(path) {
+                const item = await this.getItemByPath(path);
+                return !!item;
+            }
+
+            getAllItems() {
+                return new Promise((resolve, reject) => {
+                    const store = this.getTransaction();
+                    const request = store.getAll();
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
+        }
+
+        const fileSystemDB = new FileSystemDB(DB_NAME, STORE_NAME);
+
+        // === KHỞI TẠO ỨNG DỤNG ===
+        document.addEventListener('DOMContentLoaded', initApp);
+
+        async function initApp() {
+            await fileSystemDB.open();
+            initTheme();
+            initEventListeners();
+            await loadItems(currentPath);
+        }
+
+        // === QUẢN LÝ THEME (DARK MODE) ===
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            setTheme(savedTheme);
+
+            dom.themeToggle.addEventListener('click', () => {
+                const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+                setTheme(newTheme);
+            });
+        }
+
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                dom.themeIconSun.classList.remove('hidden');
+                dom.themeIconMoon.classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                dom.themeIconSun.classList.add('hidden');
+                dom.themeIconMoon.classList.remove('hidden');
+            }
+            localStorage.setItem('theme', theme);
+        }
+
+        // === GẮN CÁC SỰ KIỆN ===
+        function initEventListeners() {
+            // Nút tải lên
+            dom.uploadBtn.addEventListener('click', () => dom.uploadInput.click());
+            dom.uploadInput.addEventListener('change', handleFilesUpload);
+
+            // Nút tải thư mục (MỚI)
+            dom.uploadFolderBtn.addEventListener('click', () => dom.folderUploadInput.click());
+            dom.folderUploadInput.addEventListener('change', handleFilesUpload);
+
+            // Kéo thả file
+            dom.dropZone.addEventListener('dragover', handleDragOver);
+            dom.dropZone.addEventListener('dragleave', handleDragLeave);
+            dom.dropZone.addEventListener('drop', handleFileDrop);
+
+            // Nút tạo thư mục
+            dom.createFolderBtn.addEventListener('click', showCreateFolderModal);
+            dom.createFolderForm.addEventListener('submit', handleCreateFolder);
+
+            // Form đổi tên
+            dom.renameForm.addEventListener('submit', handleRename);
+
+            // Đóng modal
+            document.querySelectorAll('.modal-close-btn').forEach(btn => {
+                btn.addEventListener('click', hideAllModals);
+            });
+            document.querySelectorAll('.modal-backdrop').forEach(modal => {
+                modal.addEventListener('click', hideAllModals);
+            });
+
+            // Đóng context menu
+            document.addEventListener('click', hideContextMenu);
+            
+            // Tìm kiếm (chỉ là UI, chưa lọc)
+            dom.searchInput.addEventListener('input', (e) => {
+                console.log('Đang tìm kiếm:', e.target.value);
+            });
+
+            // Sự kiện cho Context Menu
+            dom.contextMenu.addEventListener('click', handleContextMenuAction);
+
+            // Cài đặt
+            dom.settingsBtn.addEventListener('click', showSettingsModal);
+
+            // Multi-select (MỚI)
+            dom.multiSelectToolbar.addEventListener('click', handleMultiSelectAction);
+            // Click ra ngoài để bỏ chọn
+            dom.dropZone.addEventListener('click', (e) => {
+                if (e.target === dom.dropZone || e.target === dom.fileList) {
+                    selectedItemIds.clear();
+                    lastClickedId = null;
+                    updateSelectionUI(); 
+                }
+            });
+        }
+
+        // === HIỂN THỊ MODALS ===
+        function showModal(modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function hideModal(modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function hideAllModals() {
+            hideModal(dom.createFolderModal);
+            hideModal(dom.renameModal);
+            hideModal(dom.previewModal);
+            hideModal(dom.settingsModal);
+        }
+
+        function showCreateFolderModal() {
+            dom.folderNameInput.value = '';
+            showModal(dom.createFolderModal);
+            dom.folderNameInput.focus();
+        }
+
+        function showRenameModal(id, currentName) {
+            dom.renameIdInput.value = id;
+            dom.renameNameInput.value = currentName;
+            showModal(dom.renameModal);
+            dom.renameNameInput.focus();
+            dom.renameNameInput.select();
+        }
+
+        async function showSettingsModal() {
+            dom.settingsContent.innerHTML = `
+                <div class="text-center p-4">
+                    <svg class="w-8 h-8 animate-spin mx-auto text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Đang tính toán dung lượng...</p>
+                </div>`;
+            showModal(dom.settingsModal);
+
+            try {
+                const { totalSize, fileCount } = await calculateStorageUsage();
+                const formattedSize = formatFileSize(totalSize);
+
+                let quotaText = "Không thể lấy thông tin";
+                if (navigator.storage && navigator.storage.estimate) {
+                    const quota = await navigator.storage.estimate();
+                    const formattedQuota = formatFileSize(quota.quota);
+                    const percentage = (quota.quota > 0) ? ((totalSize / quota.quota) * 100).toFixed(2) : 0;
+                    quotaText = `${formattedSize} / ${formattedQuota} (${percentage}%)`;
+                } else {
+                    quotaText = `${formattedSize} đã sử dụng`;
+                }
+
+                dom.settingsContent.innerHTML = `
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Tổng dung lượng đã sử dụng</label>
+                            <p class="text-xl font-semibold">${quotaText}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Tổng số tệp</label>
+                            <p class="text-xl font-semibold">${fileCount} tệp</p>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error("Lỗi khi tính toán dung lượng:", error);
+                dom.settingsContent.innerHTML = `<p class="text-red-500">Không thể tính toán dung lượng.</p>`;
+            }
+        }
+
+        async function calculateStorageUsage() {
+            const allItems = await fileSystemDB.getAllItems();
+            let totalSize = 0;
+            let fileCount = 0;
+            
+            allItems.forEach(item => {
+                if (item.type === 'file' && item.size) {
+                    totalSize += item.size;
+                    fileCount++;
+                }
+            });
+
+            return { totalSize, fileCount };
+        }
+
+
+        // === LOGIC CHÍNH: QUẢN LÝ FILE/THƯ MỤC ===
+
+        async function loadItems(path) {
+            currentPath = path;
+            selectedItemIds.clear(); // MỚI
+            lastClickedId = null; // MỚI
+            
+            const items = await fileSystemDB.getItemsInPath(path);
+            
+            items.sort((a, b) => {
+                if (a.type === 'folder' && b.type !== 'folder') return -1;
+                if (a.type !== 'folder' && b.type === 'folder') return 1;
+                return a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' });
+            });
+
+            renderFileList(items);
+            updateSelectionUI(); // MỚI
+            renderBreadcrumbs(path);
+        }
+
+        function renderFileList(items) {
+            dom.fileList.innerHTML = ''; 
+
+            if (items.length === 0) {
+                dom.emptyFolderMsg.classList.remove('hidden');
+                dom.emptyFolderMsg.classList.add('flex');
+                return;
+            }
+            
+            dom.emptyFolderMsg.classList.add('hidden');
+            dom.emptyFolderMsg.classList.remove('flex');
+
+            items.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'grid grid-cols-12 gap-4 px-4 py-3 items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-150';
+                itemEl.setAttribute('data-id', item.id);
+                itemEl.setAttribute('data-name', item.name);
+                itemEl.setAttribute('data-type', item.type);
+                itemEl.setAttribute('data-path', item.path);
+
+                const isFolder = item.type === 'folder';
+
+                itemEl.innerHTML = `
+                    <div class="col-span-6 sm:col-span-5 flex items-center gap-3 truncate">
+                        ${getIcon(item.type, item.mime)}
+                        <span class="truncate font-medium">${item.name}</span>
+                    </div>
+                    <div class="col-span-3 sm:col-span-3 text-sm text-gray-500 dark:text-gray-400 truncate hidden sm:block">
+                        ${new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                    </div>
+                    <div class="col-span-3 sm:col-span-2 text-sm text-gray-500 dark:text-gray-400 text-right">
+                        ${isFolder ? '--' : formatFileSize(item.size)}
+                    </div>
+                    <div class="col-span-3 sm:col-span-2 text-sm text-gray-500 dark:text-gray-400 text-right truncate">
+                        ${isFolder ? 'Thư mục' : (item.mime || 'Không rõ')}
+                    </div>
+                `;
+
+                // --- CẬP NHẬT SỰ KIỆN CLICK VÀ TOUCH (MỚI) ---
+
+                // Dblclick cho desktop
+                itemEl.addEventListener('dblclick', () => handleItemDoubleClick(item));
+                
+                // Click (single-tap cho mobile, multi-select cho desktop)
+                itemEl.addEventListener('click', (e) => handleItemClick(e, item));
+
+                // Sự kiện context menu (chuột phải)
+                itemEl.addEventListener('contextmenu', (e) => showContextMenu(e, item.id));
+
+                // Sự kiện long-press cho mobile
+                let longPressTimer;
+                itemEl.addEventListener('touchstart', (e) => {
+                    itemEl.dataset.longPress = 'false'; 
+                    longPressTimer = setTimeout(() => {
+                        e.preventDefault(); 
+                        itemEl.dataset.longPress = 'true';
+                        const touch = e.touches[0];
+                        const mockEvent = {
+                            clientX: touch.clientX,
+                            clientY: touch.clientY,
+                            preventDefault: () => e.preventDefault(),
+                            stopPropagation: () => e.stopPropagation()
+                        };
+                        showContextMenu(mockEvent, item.id);
+                    }, 500); 
+                });
+
+                itemEl.addEventListener('touchend', () => {
+                    clearTimeout(longPressTimer);
+                });
+
+                itemEl.addEventListener('touchmove', () => {
+                    clearTimeout(longPressTimer);
+                });
+
+                dom.fileList.appendChild(itemEl);
+            });
+        }
+
+        function renderBreadcrumbs(path) {
+            dom.breadcrumbs.innerHTML = '';
+            let builtPath = '';
+            
+            const parts = path.split('/').filter(p => p); 
+            
+            const rootEl = createBreadcrumbItem('Trang chủ', '/');
+            dom.breadcrumbs.appendChild(rootEl);
+
+            parts.forEach(part => {
+                builtPath += `/${part}`;
+                const partEl = createBreadcrumbItem(part, builtPath);
+                
+                const separator = document.createElement('span');
+                separator.className = 'text-gray-400 dark:text-gray-500';
+                separator.textContent = '/';
+                dom.breadcrumbs.appendChild(separator);
+                
+                dom.breadcrumbs.appendChild(partEl);
+            });
+        }
+
+        function createBreadcrumbItem(name, path) {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = '#';
+            a.textContent = name;
+            a.className = 'px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors';
+            a.onclick = (e) => {
+                e.preventDefault();
+                loadItems(path);
+            };
+            li.appendChild(a);
+            return li;
+        }
+
+        // === XỬ LÝ SỰ KIỆN FILE/FOLDER ===
+
+        // MỚI: Xử lý click (có logic multi-select)
+        function handleItemClick(e, item) {
+            const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+            const itemEl = e.currentTarget;
+            if (itemEl.dataset.longPress === 'true') {
+                e.preventDefault();
+                itemEl.dataset.longPress = 'false';
+                return;
+            }
+
+            if (isTouch) {
+                // TRÊN MOBILE: click 1 lần = dblclick
+                handleItemDoubleClick(item);
+                return;
+            }
+
+            // TRÊN DESKTOP: click 1 lần = multi-select logic
+            e.preventDefault();
+            const itemId = item.id;
+
+            if (e.shiftKey && lastClickedId) {
+                // Shift + Click (chọn khoảng)
+                const allItemElements = [...dom.fileList.querySelectorAll('[data-id]')];
+                const allItemIds = allItemElements.map(el => parseInt(el.dataset.id));
+                
+                const lastIndex = allItemIds.indexOf(lastClickedId);
+                const currentIndex = allItemIds.indexOf(itemId);
+                
+                const start = Math.min(lastIndex, currentIndex);
+                const end = Math.max(lastIndex, currentIndex);
+                
+                const idsToSelect = allItemIds.slice(start, end + 1);
+                
+                if (!e.ctrlKey && !e.metaKey) {
+                    selectedItemIds.clear(); // Xóa cũ nếu không giữ Ctrl
+                }
+                idsToSelect.forEach(id => selectedItemIds.add(id));
+                
+            } else if (e.ctrlKey || e.metaKey) {
+                // Ctrl/Cmd + Click (toggle)
+                if (selectedItemIds.has(itemId)) {
+                    selectedItemIds.delete(itemId);
+                } else {
+                    selectedItemIds.add(itemId);
+                }
+                lastClickedId = itemId;
+            } else {
+                // Click (chọn 1)
+                selectedItemIds.clear();
+                selectedItemIds.add(itemId);
+                lastClickedId = itemId;
+            }
+
+            updateSelectionUI();
+        }
+
+        // MỚI: Cập nhật UI cho các mục đã chọn
+        function updateSelectionUI() {
+            const allItemElements = [...dom.fileList.querySelectorAll('[data-id]')];
+            allItemElements.forEach(el => {
+                const id = parseInt(el.dataset.id);
+                if (selectedItemIds.has(id)) {
+                    el.classList.add('bg-blue-100', 'dark:bg-blue-900');
+                } else {
+                    el.classList.remove('bg-blue-100', 'dark:bg-blue-900');
+                }
+            });
+
+            // Cập nhật toolbar
+            if (selectedItemIds.size > 0) {
+                dom.selectedCount.textContent = `Đã chọn ${selectedItemIds.size}`;
+                dom.multiSelectToolbar.classList.remove('hidden');
+                dom.multiSelectToolbar.classList.add('flex');
+            } else {
+                dom.multiSelectToolbar.classList.add('hidden');
+                dom.multiSelectToolbar.classList.remove('flex');
+            }
+        }
+
+        function handleItemDoubleClick(item) {
+            if (item.type === 'folder') {
+                loadItems(item.path);
+            } else {
+                previewFile(item);
+            }
+        }
+        
+        async function handleCreateFolder(event) {
+            event.preventDefault();
+            const name = dom.folderNameInput.value.trim();
+            if (!name) return;
+            
+            const newPath = (currentPath === '/' ? '' : currentPath) + '/' + name;
+            
+            if (await fileSystemDB.pathExists(newPath)) {
+                alert('Tên thư mục đã tồn tại!');
+                return;
+            }
+
+            const newFolder = {
+                path: newPath,
+                parentPath: currentPath,
+                name: name,
+                type: 'folder',
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                await fileSystemDB.addItem(newFolder);
+                hideModal(dom.createFolderModal);
+                await loadItems(currentPath);
+            } catch (error) {
+                console.error('Không thể tạo thư mục:', error);
+                alert('Lỗi: Tên này có thể đã tồn tại.');
+            }
+        }
+
+        async function handleRename(event) {
+            event.preventDefault();
+            const id = parseInt(dom.renameIdInput.value);
+            const newName = dom.renameNameInput.value.trim();
+            if (!id || !newName) return;
+
+            const item = await fileSystemDB.getItem(id);
+            if (!item) return;
+            
+            if (item.name === newName) {
+                hideModal(dom.renameModal);
+                return;
+            }
+
+            const newPath = (item.parentPath === '/' ? '' : item.parentPath) + '/' + newName;
+            
+            if (await fileSystemDB.pathExists(newPath)) {
+                alert('Tên đã tồn tại trong thư mục này!');
+                return;
+            }
+            
+            try {
+                const oldPath = item.path; 
+                item.name = newName;
+                item.path = newPath;
+                await fileSystemDB.updateItem(item);
+
+                if (item.type === 'folder') {
+                    await updateChildrenPaths(oldPath, newPath);
+                }
+
+                hideModal(dom.renameModal);
+                await loadItems(currentPath);
+            } catch (error) {
+                console.error('Lỗi khi đổi tên:', error);
+                alert('Lỗi: Không thể đổi tên.');
+            }
+        }
+        
+        async function updateChildrenPaths(oldPathPrefix, newPathPrefix) {
+            const children = await fileSystemDB.getItemsInPath(oldPathPrefix);
+            
+            for(const child of children) {
+                const oldChildPath = child.path;
+                const newChildPath = newPathPrefix + oldChildPath.substring(oldPathPrefix.length);
+                
+                child.path = newChildPath;
+                child.parentPath = newPathPrefix;
+                await fileSystemDB.updateItem(child);
+                
+                if (child.type === 'folder') {
+                    await updateChildrenPaths(oldChildPath, newChildPath);
+                }
+            }
+        }
+
+        // === XỬ LÝ TẢI FILE LÊN ===
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dom.dropZone.classList.add('drag-over');
+        }
+        
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dom.dropZone.classList.remove('drag-over');
+        }
+
+        function handleFileDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dom.dropZone.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                processFiles(files);
+            }
+        }
+
+        // Đổi tên: handleFileUpload -> handleFilesUpload
+        function handleFilesUpload(e) {
+            const files = e.target.files;
+            if (files.length) {
+                processFiles(files);
+            }
+            e.target.value = ''; // Reset input
+        }
+
+        // MỚI: Hàm helper để tạo thư mục đệ quy
+        async function getOrCreateFolderByPath(fullPath) {
+            if (fullPath === '/') return null; 
+
+            let item = await fileSystemDB.getItemByPath(fullPath);
+            if (item) {
+                if (item.type === 'folder') return item;
+                throw new Error(`Một tệp (không phải thư mục) đã tồn tại tại: ${fullPath}`);
+            }
+
+            const parts = fullPath.split('/').filter(p => p);
+            const name = parts.pop();
+            const parentPath = '/' + parts.join('/');
+
+            if (parentPath !== '/') {
+                await getOrCreateFolderByPath(parentPath);
+            }
+            
+            const newFolder = {
+                path: fullPath,
+                parentPath: parentPath,
+                name: name,
+                type: 'folder',
+                createdAt: new Date().toISOString()
+            };
+            await fileSystemDB.addItem(newFolder);
+            return newFolder;
+        }
+
+        // Cập nhật: processFiles để xử lý tải lên thư mục
+        async function processFiles(files) {
+            for (const file of files) {
+                let parentPath = currentPath;
+                let fileName = file.name;
+                let fullPath = (currentPath === '/' ? '' : currentPath) + '/' + file.name;
+
+                // KIỂM TRA NẾU LÀ TẢI LÊN THƯ MỤC
+                if (file.webkitRelativePath) {
+                    const pathParts = file.webkitRelativePath.split('/');
+                    fileName = pathParts.pop(); // Lấy tên file
+                    
+                    const folderStructurePath = pathParts.join('/');
+                    const targetFolderPath = (currentPath === '/' ? '' : currentPath) + '/' + folderStructurePath;
+
+                    if (folderStructurePath) {
+                        try {
+                            await getOrCreateFolderByPath(targetFolderPath);
+                            parentPath = targetFolderPath;
+                        } catch (e) {
+                            console.error(`Không thể tạo thư mục ${targetFolderPath}: ${e.message}`);
+                            continue; 
+                        }
+                    }
+                    fullPath = (parentPath === '/' ? '' : parentPath) + '/' + fileName;
+                }
+
+
+                if (await fileSystemDB.pathExists(fullPath)) {
+                    console.warn(`File ${fullPath} đã tồn tại, bỏ qua.`);
+                    continue; 
+                }
+
+                const fileItem = {
+                    path: fullPath,
+                    parentPath: parentPath,
+                    name: fileName,
+                    type: 'file',
+                    mime: file.type || 'application/octet-stream',
+                    size: file.size,
+                    createdAt: new Date().toISOString(),
+                    content: file 
+                };
+
+                try {
+                    await fileSystemDB.addItem(fileItem);
+                } catch (error) {
+                    console.error('Không thể thêm file:', file.name, error);
+                }
+            }
+            await loadItems(currentPath); // Tải lại danh sách
+        }
+
+
+        // === CONTEXT MENU (MENU CHUỘT PHẢI) ===
+        
+        // Cập nhật: Tương thích với multi-select
+        function showContextMenu(e, id) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            contextMenuItemId = id; // Vẫn lưu ID này làm "anchor"
+            const itemEl = dom.fileList.querySelector(`[data-id="${id}"]`);
+            if (!itemEl) return;
+
+            // Logic chọn khi click chuột phải
+            if (!selectedItemIds.has(id)) {
+                selectedItemIds.clear();
+                selectedItemIds.add(id);
+                lastClickedId = id;
+                updateSelectionUI(); // Cập nhật UI ngay
+            }
+
+            const type = itemEl.getAttribute('data-type');
+            const selectionSize = selectedItemIds.size;
+
+            // Ẩn/hiện tùy chọn dựa trên SỐ LƯỢNG MỤC đã chọn
+            const openBtn = dom.contextMenu.querySelector('[data-action="open"]');
+            const previewBtn = dom.contextMenu.querySelector('[data-action="preview"]');
+            const renameBtn = dom.contextMenu.querySelector('[data-action="rename"]');
+            const downloadBtn = dom.contextMenu.querySelector('[data-action="download"]');
+            const deleteBtn = dom.contextMenu.querySelector('[data-action="delete"]');
+
+            // Chỉ Mở/Xem trước/Đổi tên khi chọn 1 mục
+            openBtn.style.display = (selectionSize === 1 && type === 'folder') ? 'flex' : 'none';
+            previewBtn.style.display = (selectionSize === 1 && type === 'file') ? 'flex' : 'none';
+            renameBtn.style.display = (selectionSize === 1) ? 'flex' : 'none';
+
+            // Luôn hiển thị Tải xuống và Xóa
+            downloadBtn.style.display = 'flex';
+            deleteBtn.style.display = 'flex';
+
+
+            const menuWidth = dom.contextMenu.offsetWidth;
+            const menuHeight = dom.contextMenu.offsetHeight;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            let x = e.clientX;
+            let y = e.clientY;
+
+            if (x + menuWidth > viewportWidth) {
+                x = viewportWidth - menuWidth - 5; 
+            }
+            if (y + menuHeight > viewportHeight) {
+                y = viewportHeight - menuHeight - 5;
+            }
+
+            dom.contextMenu.style.top = `${y}px`;
+            dom.contextMenu.style.left = `${x}px`;
+            dom.contextMenu.classList.remove('hidden');
+        }
+
+        function hideContextMenu() {
+            dom.contextMenu.classList.add('hidden');
+            // không reset contextMenuItemId ở đây, để handleContextMenuAction còn dùng
+        }
+
+        // Cập nhật: Dùng hàm helper cho multi-select
+        async function handleContextMenuAction(e) {
+            const button = e.target.closest('button');
+            if (!button) return;
+            
+            const action = button.getAttribute('data-action');
+            if (!action) return;
+
+            const idsToActOn = Array.from(selectedItemIds);
+            if (idsToActOn.length === 0) return; 
+
+            const anchorItem = await fileSystemDB.getItem(contextMenuItemId); 
+            if (!anchorItem) return;
+
+            switch (action) {
+                case 'open':
+                case 'preview': 
+                    if (idsToActOn.length === 1) {
+                        handleItemDoubleClick(anchorItem);
+                    }
+                    break;
+                case 'download': 
+                    await handleDownloadSelected(idsToActOn, button); // Dùng hàm mới
+                    break;
+                case 'rename':
+                    if (idsToActOn.length === 1) {
+                        showRenameModal(anchorItem.id, anchorItem.name);
+                    }
+                    break;
+                case 'delete':
+                    await handleDeleteSelected(idsToActOn); // Dùng hàm mới
+                    break;
+            }
+            
+            if (action !== 'rename') {
+                 hideContextMenu();
+            }
+        }
+
+
+        // === THANH CÔNG CỤ MULTI-SELECT (MỚI) ===
+        async function handleMultiSelectAction(e) {
+            const button = e.target.closest('button');
+            if (!button) return;
+            
+            const action = button.dataset.action;
+            const selectedIds = Array.from(selectedItemIds);
+            if (selectedIds.length === 0) return;
+
+            switch(action) {
+                case 'clear-selection':
+                    selectedItemIds.clear();
+                    lastClickedId = null;
+                    updateSelectionUI();
+                    break;
+                case 'delete-selected':
+                    await handleDeleteSelected(selectedIds);
+                    break;
+                case 'download-selected':
+                    await handleDownloadSelected(selectedIds, button);
+                    break;
+            }
+        }
+
+
+        // === TẢI FILE/FOLDER XUỐNG (ĐÃ CẬP NHẬT) ===
+
+        async function handleDeleteSelected(ids) {
+            if (confirm(`Bạn có chắc muốn xoá ${ids.length} mục đã chọn?`)) {
+                try {
+                    for (const id of ids) {
+                        await fileSystemDB.deleteRecursive(id);
+                    }
+                } catch (error) {
+                    console.error('Lỗi khi xoá:', error);
+                    alert('Đã xảy ra lỗi khi xoá.');
+                } finally {
+                    selectedItemIds.clear();
+                    lastClickedId = null;
+                    await loadItems(currentPath); // Tải lại
+                }
+            }
+        }
+
+        async function handleDownloadSelected(ids, button) {
+            let originalHTML;
+            if (button) {
+                originalHTML = button.innerHTML;
+                button.innerHTML = `
+                    <svg class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Đang xử lý...`;
+                button.disabled = true;
+            }
+            
+            try {
+                if (ids.length === 1) {
+                    const item = await fileSystemDB.getItem(ids[0]);
+                    if (item.type === 'file') {
+                        if (button) button.innerHTML = `Đang tải...`;
+                        downloadFile(item.content, item.name);
+                    } else {
+                        if (button) button.innerHTML = `Đang nén...`;
+                        await downloadFolderAsZip(item);
+                    }
+                } else {
+                    if (button) button.innerHTML = `Đang nén...`;
+                    await downloadMultipleItemsAsZip(ids);
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải xuống:', error);
+                alert('Đã xảy ra lỗi trong quá trình tải xuống.');
+            } finally {
+                if (button) {
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                }
+                hideContextMenu();
+                selectedItemIds.clear();
+                lastClickedId = null;
+                updateSelectionUI();
+            }
+        }
+
+        async function downloadFolderAsZip(folderItem) {
+            if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded');
+            const zip = new JSZip();
+            const rootZipFolder = zip.folder(folderItem.name);
+            await addItemsToZip(rootZipFolder, folderItem.path);
+            const blob = await zip.generateAsync({ type: 'blob' });
+            downloadFile(blob, `${folderItem.name}.zip`);
+        }
+
+        async function downloadMultipleItemsAsZip(ids) {
+            if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded');
+            const zip = new JSZip();
+            for (const id of ids) {
+                const item = await fileSystemDB.getItem(id);
+                if (item.type === 'file') {
+                    zip.file(item.name, item.content);
+                } else if (item.type === 'folder') {
+                    const folderZip = zip.folder(item.name);
+                    await addItemsToZip(folderZip, item.path);
+                }
+            }
+            const blob = await zip.generateAsync({ type: 'blob' });
+            downloadFile(blob, 'download.zip');
+        }
+
+        async function addItemsToZip(zipFolder, parentPath) {
+            const items = await fileSystemDB.getItemsInPath(parentPath);
+            
+            for (const item of items) {
+                if (item.type === 'file') {
+                    zipFolder.file(item.name, item.content);
+                } else if (item.type === 'folder') {
+                    const newZipFolder = zipFolder.folder(item.name);
+                    await addItemsToZip(newZipFolder, item.path);
+                }
+            }
+        }
+
+        function downloadFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // === XEM TRƯỚC FILE (ĐÃ CẬP NHẬT) ===
+        
+        async function previewFile(item) {
+            if (item.type === 'folder' || !item.content) return;
+
+            dom.previewTitle.textContent = `Xem trước: ${item.name}`;
+            dom.previewContent.innerHTML = ''; 
+
+            const mime = item.mime.toLowerCase();
+            
+            dom.previewContent.className = 'flex-1 overflow-auto mt-4 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg flex items-center justify-center';
+            
+            if (mime.startsWith('image/')) {
+                const url = URL.createObjectURL(item.content);
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'max-w-full max-h-full object-scale-down mx-auto rounded-lg shadow-md';
+                img.onload = () => URL.revokeObjectURL(url); 
+                dom.previewContent.appendChild(img);
+                
+            } else if (mime.startsWith('text/') || mime.includes('json') || mime.includes('javascript')) {
+                dom.previewContent.classList.remove('items-center', 'justify-center');
+                try {
+                    const text = await item.content.text();
+                    const pre = document.createElement('pre');
+                    pre.textContent = text;
+                    pre.className = 'whitespace-pre-wrap break-words text-sm p-4 rounded-lg bg-white dark:bg-gray-800 w-full h-full';
+                    dom.previewContent.appendChild(pre);
+                } catch (e) {
+                    dom.previewContent.textContent = 'Lỗi khi đọc file text.';
+                }
+            
+            } else if (mime.startsWith('video/')) {
+                const url = URL.createObjectURL(item.content);
+                const video = document.createElement('video');
+                video.src = url;
+                video.controls = true;
+                video.className = 'max-w-full max-h-full mx-auto rounded-lg shadow-md';
+                video.onloadedmetadata = () => URL.revokeObjectURL(url); 
+                dom.previewContent.appendChild(video);
+
+            } else if (mime.startsWith('audio/')) {
+                 const url = URL.createObjectURL(item.content);
+                const audio = document.createElement('audio');
+                audio.src = url;
+                audio.controls = true;
+                audio.className = 'w-full max-w-lg mx-auto mt-4';
+                audio.onloadedmetadata = () => URL.revokeObjectURL(url);
+                dom.previewContent.appendChild(audio);
+                
+            } else {
+                dom.previewContent.innerHTML = `<p class="text-gray-500">Không hỗ trợ xem trước cho loại file: ${mime}</p>`;
+            }
+
+            showModal(dom.previewModal);
+        }
+
+        // === TIỆN ÍCH ===
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function getIcon(type, mime = '') {
+            const baseClass = 'w-6 h-6 flex-shrink-0';
+            if (type === 'folder') {
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="${baseClass} text-yellow-500">
+                            <path d="M19.5 21a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-5.379a.75.75 0 0 1-.53-.22L11.47 3.66A2.25 2.25 0 0 0 9.879 3H4.5A3 3 0 0 0 1.5 6v12a3 3 0 0 0 3 3h15Z" />
+                        </svg>`;
+            }
+            
+            if (mime.startsWith('image/')) {
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="${baseClass} text-purple-500">
+                            <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.06l3.24-3.24a.75.75 0 0 1 1.06 0l1.22 1.22a.75.75 0 0 0 1.06 0l3.24-3.24a.75.75 0 0 1 1.06 0l5.47 5.47V18a.75.75 0 0 1-.75.75H3.75a.75.75 0 0 1-.75-.75v-1.94ZM9.75 9.75a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                        </svg>`;
+            }
+            if (mime.startsWith('video/')) {
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="${baseClass} text-red-500">
+                            <path d="M4.5 4.5a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3v-9a3 3 0 0 0-3-3h-15Zm11.25 9-3.75-2.25V15.75l3.75-2.25Zm-4.5 0-3.75-2.25V15.75l3.75-2.25Z" />
+                        </svg>`;
+            }
+             if (mime.startsWith('audio/')) {
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="${baseClass} text-orange-500">
+                            <path fill-rule="evenodd" d="M19.952 1.651a.75.75 0 0 1 .298.599V16.5a3 3 0 0 1-3 3h-1.5a.75.75 0 0 1 0-1.5h1.5a1.5 1.5 0 0 0 1.5-1.5V3.44l-11.25 3.383v11.177A3 3 0 0 1 7.5 21h-1.5a.75.75 0 0 1 0-1.5h1.5a1.5 1.5 0 0 0 1.5-1.5V6.382l10.5-3.156Z" clip-rule="evenodd" />
+                        </svg>`;
+            }
+            if (mime.startsWith('text/') || mime.includes('json') || mime.includes('script')) {
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="${baseClass} text-blue-500">
+                            <path fill-rule="evenodd" d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a.375.375 0 0 1-.375-.375V6.75A3.75 3.75 0 0 0 10.5 3h-1.875A.375.375 0 0 1 8.25 2.625V1.5H5.625ZM12 9V6.75A2.25 2.25 0 0 0 9.75 4.5h-1.5V18a.75.75 0 0 0 .75.75h10.5a.75.75 0 0 0 .75-.75V12.75a2.25 2.25 0 0 0-2.25-2.25H12Z" clip-rule="evenodd" />
+                            <path d="M14.25 9.75a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75h-.008a.75.75 0 0 1-.75-.75V9.75Z" />
+                        </svg>`;
+            }
+            // Icon file mặc định
+            return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="${baseClass} text-gray-500">
+                        <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a.375.375 0 0 1-.375-.375V6.75A3.75 3.75 0 0 0 10.5 3h-1.875A.375.375 0 0 1 8.25 2.625V1.5H5.625Z" />
+                        <path d="M12.971 1.816A5.23 5.23 0 0 1 16.5 6.75v1.875c0 .207.168.375.375.375H18.75a5.23 5.23 0 0 1 4.934 3.529.75.75 0 0 0-1.428-.432 3.73 3.73 0 0 0-3.506-2.597H16.875a1.875 1.875 0 0 1-1.875-1.875V6.93a3.73 3.73 0 0 0-2.597-3.506.75.75 0 0 0-.432 1.428Z" />
+                    </svg>`;
+        }
+    </script>
+</body>
+</html>
+
